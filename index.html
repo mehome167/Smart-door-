@@ -2,242 +2,258 @@
 <html lang="ur">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Bell Pro - Malta Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Bell Pro - Premium</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
-    
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+
     <style>
-        :root { 
-            --malta-gradient: linear-gradient(135deg, #f27121, #e94057);
-            --primary: #f27121; --secondary: #333; --bg: #f9f9f9; 
-        }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; }
-        
-        .card { 
-            background: white; border-radius: 20px; padding: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-            max-width: 450px; width: 100%; text-align: center; border: 1px solid #eee;
-        }
-        
-        h1 { color: var(--primary); margin-bottom: 5px; font-size: 24px; }
-        .subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
-
-        input, select, textarea { 
-            width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; 
-            border: 1px solid #ddd; font-size: 15px; outline: none;
+        :root {
+            --primary: #f27121;
+            --secondary: #e94057;
+            --gradient: linear-gradient(135deg, #f27121 0%, #e94057 100%);
+            --bg: #f8f9fd;
+            --card-bg: #ffffff;
+            --text: #2d3436;
         }
 
-        .btn { 
-            width: 100%; padding: 14px; border-radius: 10px; border: none; 
-            font-size: 16px; font-weight: 600; cursor: pointer; color: white;
-            margin: 5px 0; transition: 0.2s;
-        }
-        .btn-main { background: var(--malta-gradient); }
-        .btn-whatsapp { background: #25d366; }
-        .btn-download { background: #3498db; }
-        .btn-stop { background: #333; margin-top: 10px; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); margin: 0; padding: 0; color: var(--text); overflow-x: hidden; }
 
-        #qrcode { margin: 15px auto; padding: 10px; border: 2px solid var(--primary); display: inline-block; border-radius: 10px; background: white; }
-        #video { width: 100%; border-radius: 15px; margin-top: 10px; border: 2px solid #ddd; }
-        
-        .history-item { 
-            text-align: left; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; 
+        /* Splash Screen */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--gradient); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 1000;
+            transition: opacity 0.8s ease;
         }
-        .history-item strong { color: var(--primary); }
+        .logo-circle {
+            width: 120px; height: 120px; background: white; border-radius: 30px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 60px; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* Onboarding & Sections */
+        .container { max-width: 450px; margin: 0 auto; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+        .screen { display: none; animation: fadeIn 0.5s ease; }
+        .active { display: flex; flex-direction: column; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* UI Elements */
+        .card { background: var(--card-bg); border-radius: 25px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
+        h1 { margin: 15px 0 5px; font-size: 28px; font-weight: 800; }
+        p { color: #636e72; line-height: 1.6; }
         
-        .hidden { display: none; }
-        .alert-box { background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid #ffc107; }
+        .btn {
+            width: 100%; padding: 16px; border-radius: 15px; border: none;
+            font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s;
+            margin-top: 15px;
+        }
+        .btn-primary { background: var(--gradient); color: white; box-shadow: 0 5px 15px rgba(233, 64, 87, 0.3); }
+        .btn-google { background: white; color: #444; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        /* QR Styling */
+        #qrcode { 
+            background: white; padding: 20px; border-radius: 20px; 
+            margin: 20px auto; display: inline-block;
+            border: 4px solid var(--primary);
+        }
+
+        /* Monitoring Stats */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .stat-box { background: #f1f2f6; padding: 15px; border-radius: 15px; text-align: center; }
+        .stat-box small { display: block; font-size: 11px; color: #7f8c8d; }
+        .stat-box b { font-size: 18px; color: var(--primary); }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>🔔 Smart Bell Pro</h1>
-    <p class="subtitle">Innovation for a Smarter Home</p>
-    
-    <div id="setup-section">
-        <input type="text" id="owner-name" placeholder="Ghar ka Naam (Owner Name)">
-        <textarea id="owner-address" placeholder="Address (Pata)"></textarea>
-        <button class="btn btn-main" onclick="generateSystem()">System Generate Karein</button>
-        
-        <div id="qr-output" class="hidden">
-            <div id="qrcode"></div>
-            <button class="btn btn-download" onclick="downloadQR()">💾 Gallery mein Save karein</button>
-            <button class="btn btn-whatsapp" onclick="shareOwnerLink()">📲 Ghar walon ko bhejain (Admin)</button>
-            <p style="font-size: 12px; color: #e94057; font-weight: bold;">Upar wala QR print karke darwaze par lagayein!</p>
-        </div>
+    <div id="splash">
+        <div class="logo-circle">🔔</div>
+        <h2 style="color: white; margin-top: 20px;">Smart Bell Pro</h2>
+        <div style="color: white; opacity: 0.8;">Loading Innovation...</div>
     </div>
 
-    <div id="visitor-section" class="hidden">
-        <h2 id="house-name" style="color: var(--primary);"></h2>
-        <input type="text" id="visitor-name" placeholder="Apna Naam Likhein">
-        <select id="visit-reason">
-            <option value="Relative">Rishtedaar</option>
-            <option value="Delivery">Delivery / Food</option>
-            <option value="Guest">Guest</option>
-            <option value="Emergency">Emergency 🆘</option>
-        </select>
-        <video id="video" autoplay playsinline></video>
-        <button class="btn btn-main" onclick="submitVisit()">🚀 Bell Bajayein!</button>
+    <div class="container">
+        
+        <div id="step1" class="screen active">
+            <div class="card">
+                <img src="https://cdn-icons-png.flaticon.com/512/3602/3602145.png" width="150" alt="Bell">
+                <h1>Smart Doorbell</h1>
+                <p>Ab koi bhi darwaze par ho, aapko notification milega foran!</p>
+                <button class="btn btn-primary" onclick="showScreen('step2')">Next</button>
+            </div>
+        </div>
+
+        <div id="step2" class="screen">
+            <div class="card">
+                <img src="https://cdn-icons-png.flaticon.com/512/9131/9131546.png" width="150" alt="Security">
+                <h1>Security Pehle</h1>
+                <p>Visitor ki selfie aur details ke saath apne ghar ko mehfooz banayein.</p>
+                <button class="btn btn-primary" onclick="showScreen('auth-screen')">Get Started</button>
+            </div>
+        </div>
+
+        <div id="auth-screen" class="screen">
+            <div class="card">
+                <h1>Welcome Back</h1>
+                <p>Apne account ke saath continue karein</p>
+                <button class="btn btn-google" onclick="loginWithGoogle()">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="20"> Continue with Google
+                </button>
+                <div style="margin: 20px 0; color: #ccc;">OR</div>
+                <input type="text" id="setup-name" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd" placeholder="Ghar ka Naam">
+                <button class="btn btn-primary" onclick="generateSystem()">Setup Without Login</button>
+            </div>
+        </div>
+
+        <div id="owner-dashboard" class="screen">
+            <div class="card" style="text-align: left;">
+                <h2 id="display-house-name">My Smart Home</h2>
+                <div class="stats-grid">
+                    <div class="stat-box"><b>0</b><small>Total Visitors</small></div>
+                    <div class="stat-box"><b>Active</b><small>Status</small></div>
+                </div>
+
+                <div id="qr-display-area" class="hidden" style="text-align: center;">
+                    <div id="qrcode"></div>
+                    <p style="font-size: 12px;">Is QR Code ko print karke darwaze par lagayein</p>
+                </div>
+
+                <button id="unlock-btn" class="btn btn-primary" onclick="activateSound()">🔔 Start Monitoring (Sound On)</button>
+                
+                <div id="alerts-container" style="margin-top: 20px;">
+                    <h4>Recent Activity</h4>
+                    <div id="visitor-list" style="font-size: 14px; color: #666;">Koi activity nahi hui...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="visitor-page" class="screen">
+            <div class="card">
+                <h2 id="visitor-house-title">Smart Bell</h2>
+                <p>Apna naam likhein aur bell bajayein</p>
+                <input type="text" id="visitor-name" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd" placeholder="Aapka Naam">
+                <button class="btn btn-primary" onclick="ringBell()">🚀 Bell Bajayein!</button>
+            </div>
+        </div>
+
     </div>
 
-    <div id="owner-section" class="hidden">
-        <div class="alert-box">
-            <strong>Monitoring Mode Active</strong><br>
-            Aapko live notifications milengi.
-        </div>
-        
-        <div id="latest-alert"></div>
-        <audio id="bell-sound" loop src="https://www.soundjay.com/phone/phone-calling-1.mp3"></audio>
-        <button id="stop-btn" class="btn btn-stop hidden" onclick="stopBell()">🛑 Bell Band Karein</button>
+    <audio id="bell-sound" loop src="https://www.soundjay.com/phone/phone-calling-1.mp3"></audio>
 
-        <hr>
-        <h4>Mulaqatiyon ka Record (History)</h4>
-        <div id="visitor-log" style="max-height: 300px; overflow-y: auto;">
-            Loading history...
-        </div>
-    </div>
-</div>
+    <script>
+        // Firebase Config (Aapki purani settings)
+        const firebaseConfig = {
+    apiKey: "AIzaSyCkxPJiYfXmutvzEKStyebV6R0yuoyJcBA",
+    authDomain: "smart-door-bell-61052.firebaseapp.com",
+    databaseURL: "https://smart-door-bell-61052-default-rtdb.firebaseio.com",
+    projectId: "smart-door-bell-61052",
+    storageBucket: "smart-door-bell-61052.appspot.com",
+    messagingSenderId: "443870830392",
+    appId: "1:443870830392:web:beb328b07cc2ac88fbebcd"
+};
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
 
-<script>
-    // --- Firebase Configuration ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyCkxPJiYfXmutvzEKStyebV6R0yuoyJcBA",
-        authDomain: "smart-door-bell-61052.firebaseapp.com",
-        projectId: "smart-door-bell-61052",
-        databaseURL: "https://smart-door-bell-61052-default-rtdb.firebaseio.com",
-        storageBucket: "smart-door-bell-61052.firebasestorage.app",
-        messagingSenderId: "443870830392",
-        appId: "1:443870830392:web:beb328b07cc2ac88fbebcd"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+        // Screen Logic
+        function showScreen(id    ) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
 
-    // URL Parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const myId = urlParams.get('id');
-    const role = urlParams.get('role');
+        // Hide Splash
+        window.onload = () => {
+            setTimeout(() => {
+                document.getElementById('splash').style.opacity = '0';
+                setTimeout(() => document.getElementById('splash').style.display = 'none', 800);
+            }, 2000);
 
-    window.onload = () => {
-        if (role === 'visitor') initVisitor();
-        else if (role === 'owner') initOwner();
-    };
-
-    // --- SETUP LOGIC ---
-    function generateSystem() {
-        const name = document.getElementById('owner-name').value;
-        const addr = document.getElementById('owner-address').value;
-        if (!name || !addr) return alert("Pehle details bharein!");
-
-        const houseId = "HBell_" + Math.random().toString(36).substr(2, 7);
-        const baseUrl = window.location.href.split('?')[0];
-        
-        // Host hone ke baad ye link asli web link ban jayega
-        const vUrl = `${baseUrl}?id=${houseId}&role=visitor`;
-        const oUrl = `${baseUrl}?id=${houseId}&role=owner`;
-
-        db.ref('houses/' + houseId + '/info').set({ name, addr });
-
-        // QR Code
-        document.getElementById('qrcode').innerHTML = "";
-        new QRCode(document.getElementById("qrcode"), { text: vUrl, width: 180, height: 180 });
-        
-        window.ownerLink = oUrl; // Global save for sharing
-        document.getElementById('qr-output').classList.remove('hidden');
-    }
-
-    function downloadQR() {
-        const canvas = document.querySelector('#qrcode canvas');
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL("image/png");
-        link.download = 'SmartBell_QR.png';
-        link.click();
-    }
-
-    function shareOwnerLink() {
-        const msg = encodeURIComponent("Assalam-o-Alaikum! Ye mere ghar ka Smart Bell Admin link hai: " + window.ownerLink);
-        window.open(`https://wa.me/?text=${msg}`, '_blank');
-    }
-
-    // --- VISITOR LOGIC ---
-    function initVisitor() {
-        document.getElementById('setup-section').classList.add('hidden');
-        document.getElementById('visitor-section').classList.remove('hidden');
-        db.ref('houses/' + myId + '/info').once('value', s => {
-            document.getElementById('house-name').innerText = s.val().name + " ka Ghar";
-        });
-        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-            document.getElementById('video').srcObject = stream;
-        });
-    }
-
-    function submitVisit() {
-        const name = document.getElementById('visitor-name').value || "Anjaan Shakhs";
-        const reason = document.getElementById('visit-reason').value;
-        const timestamp = Date.now();
-
-        // 1. Alert for Live Notification
-        db.ref('houses/' + myId + '/live_alert').set({ name, reason, timestamp });
-
-        // 2. History for Log (Multiple entries)
-        db.ref('houses/' + myId + '/history').push({
-            name, reason, 
-            time: new Date().toLocaleTimeString(),
-            date: new Date().toLocaleDateString()
-        });
-
-        alert("Bell baj gayi hai! Intezaar farmayein.");
-    }
-
-    // --- OWNER/ADMIN LOGIC ---
-    function initOwner() {
-        document.getElementById('setup-section').classList.add('hidden');
-        document.getElementById('owner-section').classList.remove('hidden');
-
-        // Listen for live alerts
-        db.ref('houses/' + myId + '/live_alert').on('value', s => {
-            const data = s.val();
-            if (data && (Date.now() - data.timestamp < 15000)) { // Only alert if less than 15 sec old
-                playAlarm(data);
+            // Check URL Params for Visitor
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('role') === 'visitor') {
+                initVisitor(urlParams.get('id'));
             }
-        });
+        };
 
-        // Load History
-        db.ref('houses/' + myId + '/history').limitToLast(20).on('value', s => {
-            const log = document.getElementById('visitor-log');
-            log.innerHTML = "";
-            let historyData = [];
-            s.forEach(child => { historyData.unshift(child.val()); }); // Newest first
+        // Google Login Logic
+        function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((result) => {
+                const user = result.user;
+                document.getElementById('setup-name').value = user.displayName + "'s House";
+                generateSystem();
+            }).catch((error) => alert(error.message));
+        }
 
-            historyData.forEach(item => {
-                log.innerHTML += `
-                    <div class="history-item">
-                        <strong>${item.name}</strong> (${item.reason})<br>
-                        <small>${item.date} | ${item.time}</small>
-                    </div>`;
+        // Generate QR and System
+        function generateSystem() {
+            const houseName = document.getElementById('setup-name').value;
+            if(!houseName) return alert("Pehle naam likhein!");
+
+            const houseId = "H_" + Math.random().toString(36).substr(2, 6);
+            const vUrl = window.location.href.split('?')[0] + `?id=${houseId}&role=visitor`;
+            
+            db.ref('houses/' + houseId + '/info').set({ name: houseName });
+            
+            // Generate QR
+            document.getElementById('qrcode').innerHTML = "";
+            new QRCode(document.getElementById("qrcode"), { text: vUrl, width: 200, height: 200, colorDark : "#f27121" });
+            
+            document.getElementById('display-house-name').innerText = houseName;
+            document.getElementById('qr-display-area').classList.remove('hidden');
+            showScreen('owner-dashboard');
+            startMonitoring(houseId);
+        }
+
+        // Sound Activation (Crucial for Browsers)
+        let soundReady = false;
+        function activateSound() {
+            const audio = document.getElementById('bell-sound');
+            audio.play().then(() => {
+                audio.pause();
+                soundReady = true;
+                document.getElementById('unlock-btn').innerHTML = "✅ Monitoring Active";
+                document.getElementById('unlock-btn').style.background = "#2ecc71";
             });
-        });
-    }
+        }
 
-    function playAlarm(data) {
-        document.getElementById('bell-sound').play();
-        document.getElementById('stop-btn').classList.remove('hidden');
-        document.getElementById('latest-alert').innerHTML = `
-            <div class="alert-box" style="background:#d4edda; border-color:#28a745;">
-                <strong>Naya Visitor!</strong><br>
-                ${data.name} darwaze par hai (${data.reason})
-            </div>`;
-    }
+        // Monitoring
+        function startMonitoring(id) {
+            db.ref('houses/' + id + '/live_alert').on('value', s => {
+                const data = s.val();
+                if(data && (Date.now() - data.timestamp < 30000)) {
+                    if(soundReady) document.getElementById('bell-sound').play();
+                    alert("🔔 " + data.name + " darwaze par hai!");
+                }
+            });
+        }
 
-    function stopBell() {
-        document.getElementById('bell-sound').pause();
-        document.getElementById('bell-sound').currentTime = 0;
-        document.getElementById('stop-btn').classList.add('hidden');
-    }
-</script>
+        // Visitor Logic
+        function initVisitor(id) {
+            showScreen('visitor-page');
+            window.currentHouseId = id;
+            db.ref('houses/' + id + '/info').once('value', s => {
+                document.getElementById('visitor-house-title').innerText = s.val().name;
+            });
+        }
 
+        function ringBell() {
+            const name = document.getElementById('visitor-name').value || "Guest";
+            db.ref('houses/' + window.currentHouseId + '/live_alert').set({
+                name: name,
+                timestamp: Date.now()
+            });
+            alert("Bell baj gayi hai! Shukriya.");
+        }
+    </script>
 </body>
 </html>
