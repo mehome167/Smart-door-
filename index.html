@@ -1,154 +1,296 @@
 <!DOCTYPE html>
-<html lang="ur">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Darwaza - Smart Doorbell</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Darwaza Pro | Luxury Smart Doorbell</title>
+    <!-- Fonts & Libraries -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        :root {
-            --primary: #FF9F0A; /* Competitor's Gold/Orange */
-            --bg-dark: #000000;
-            --card-dark: #1C1C1E;
-            --text-main: #FFFFFF;
-            --text-dim: #8E8E93;
-            --accent-green: #30D158;
-            --accent-red: #FF453A;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg-dark); margin: 0; padding: 0; color: var(--text-main); }
+        body {
+            background: #000000;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
 
-        /* General Layout */
-        .container { max-width: 480px; margin: 0 auto; min-height: 100vh; padding: 20px; }
-        .screen { display: none; animation: slideUp 0.4s ease-out; }
-        .active { display: flex; flex-direction: column; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        /* Glassmorphic container */
+        .app-wrapper {
+            max-width: 540px;
+            margin: 0 auto;
+            min-height: 100vh;
+            padding: 20px 18px 32px;
+            position: relative;
+        }
 
-        /* UI Elements */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .logo-text { font-size: 24px; font-weight: 700; color: var(--primary); }
-        
-        .card { background: var(--card-dark); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid #2C2C2E; }
-        
+        /* Screens */
+        .screen {
+            display: none;
+            animation: floatUp 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(24px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Glassmorphic card */
+        .glass-card {
+            background: rgba(28, 28, 30, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 32px;
+            border: 0.5px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+        }
+
         .btn {
-            width: 100%; padding: 16px; border-radius: 12px; border: none;
-            font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s;
-            margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-        .btn-primary { background: var(--primary); color: black; }
-        .btn-google { background: white; color: black; }
-        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
-
-        /* Stats Grid */
-        .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .stat-item { text-align: center; background: #2C2C2E; padding: 10px; border-radius: 12px; }
-        .stat-val { display: block; font-size: 20px; font-weight: bold; color: var(--primary); }
-        .stat-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
-
-        /* QR Area */
-        #qrcode { background: white; padding: 10px; border-radius: 12px; display: inline-block; margin: 15px 0; }
-        
-        /* Visitor List */
-        .visitor-item { display: flex; align-items: center; gap: 15px; padding: 12px 0; border-bottom: 1px solid #2C2C2E; }
-        .v-avatar { width: 45px; height: 45px; background: #3A3A3C; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .v-info { flex: 1; }
-        .v-name { font-weight: 600; font-size: 15px; }
-        .v-time { font-size: 12px; color: var(--text-dim); }
-
-        /* Input Styles */
-        input { 
-            width: 100%; background: #2C2C2E; border: 1px solid #3A3A3C; 
-            padding: 14px; border-radius: 12px; color: white; margin-bottom: 10px; outline: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
+        .btn-primary {
+            background: #FF9F0A;
+            color: #000000;
+            box-shadow: 0 4px 12px rgba(255, 159, 10, 0.25);
+        }
+
+        .btn-primary:active { transform: scale(0.97); background: #e68a00; }
+
+        .btn-google {
+            background: #ffffff;
+            color: #1c1c1e;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .stat-tile {
+            background: rgba(44, 44, 46, 0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 24px;
+            padding: 12px 6px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 800;
+            color: #FF9F0A;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #8e8e93;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .door-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .qr-container {
+            background: white;
+            padding: 16px;
+            border-radius: 28px;
+            display: inline-block;
+            margin: 16px 0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .visitor-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .visitor-avatar {
+            width: 52px;
+            height: 52px;
+            background: #2c2c2e;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            overflow: hidden;
+        }
+        .visitor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+        .chip {
+            background: rgba(255,159,10,0.2);
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 13px;
+            color: #FF9F0A;
+        }
+
+        input, textarea {
+            background: #1c1c1e;
+            border: 1px solid #2c2c2e;
+            padding: 14px 18px;
+            border-radius: 30px;
+            color: white;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        .reply-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .small-reply {
+            flex: 1;
+            background: rgba(48,209,88,0.2);
+            border: 0.5px solid #30D158;
+            padding: 8px;
+            border-radius: 40px;
+            font-size: 13px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .camera-preview {
+            width: 100%;
+            border-radius: 28px;
+            margin: 12px 0;
+            background: #1c1c1e;
+        }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-
-    <div class="container">
-        
-        <div id="screen-auth" class="screen active">
-            <div style="text-align: center; margin-top: 50px;">
-                <div style="font-size: 60px; margin-bottom: 20px;">🚪</div>
-                <h1 style="font-size: 32px;">Darwaza Pro</h1>
-                <p style="color: var(--text-dim);">Smart Home, Secure Future</p>
-                <div style="margin-top: 40px;">
-                    <button class="btn btn-google" onclick="login()">
-                        <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="20"> Continue with Google
-                    </button>
-                </div>
-            </div>
+<div class="app-wrapper">
+    <!-- AUTH SCREEN -->
+    <div id="authScreen" class="screen active">
+        <div style="text-align: center; margin-top: 15vh;">
+            <div style="font-size: 70px; margin-bottom: 16px;">🏠✨</div>
+            <h1 style="font-size: 38px; font-weight: 700; letter-spacing: -0.5px;">Darwaza <span style="color:#FF9F0A;">Pro</span></h1>
+            <p style="color: #8e8e93; margin: 8px 0 32px;">Luxury smart access · AI ready</p>
+            <button class="btn btn-google" id="googleLoginBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Continue with Google
+            </button>
         </div>
-
-        <div id="screen-dash" class="screen">
-            <div class="header">
-                <div>
-                    <span class="logo-text">Darwaza</span>
-                    <div id="user-name" style="font-size: 12px; color: var(--text-dim);">Welcome!</div>
-                </div>
-                <div style="background: var(--card-dark); padding: 8px; border-radius: 10px;">🔔</div>
-            </div>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 id="current-door-name">No Door Added</h3>
-                    <button class="btn-outline" style="width: auto; padding: 5px 12px; font-size: 12px;" onclick="showScreen('screen-add-door')">+ Add</button>
-                </div>
-                
-                <div class="stats-row">
-                    <div class="stat-item"><span class="stat-val" id="count-total">0</span><span class="stat-label">Total</span></div>
-                    <div class="stat-item"><span class="stat-val" style="color: var(--accent-green);" id="count-answered">0</span><span class="stat-label">Answered</span></div>
-                    <div class="stat-item"><span class="stat-val" style="color: var(--accent-red);" id="count-missed">0</span><span class="stat-label">Missed</span></div>
-                </div>
-
-                <div id="owner-qr-area" class="hidden" style="text-align: center;">
-                    <div id="qrcode"></div>
-                    <p style="font-size: 11px; color: var(--text-dim);">Scan this QR to ring your door</p>
-                </div>
-
-                <button id="activate-bell" class="btn btn-primary" onclick="unlockAudio()">
-                    🎧 Enable Doorbell Audio
-                </button>
-            </div>
-
-            <h4>Recent Activity</h4>
-            <div id="activity-list" class="card" style="padding: 10px;">
-                <div style="text-align: center; color: var(--text-dim); padding: 20px;">No activity yet.</div>
-            </div>
-        </div>
-
-        <div id="screen-add-door" class="screen">
-            <h3>Add New Door</h3>
-            <p style="color: var(--text-dim);">Apne darwaze ka naam rakhein (e.g., Home, Office)</p>
-            <input type="text" id="new-door-name" placeholder="Ghar ka Naam">
-            <button class="btn btn-primary" onclick="createNewDoor()">Create Door & Generate QR</button>
-            <button class="btn" style="color: white;" onclick="showScreen('screen-dash')">Cancel</button>
-        </div>
-
-        <div id="screen-visitor" class="screen">
-            <div class="card" style="text-align: center;">
-                <h1 id="v-house-name">Smart Door</h1>
-                <div style="font-size: 50px; margin: 20px 0;">👋</div>
-                <p>Darwaze par kaun hai? Apna naam batayein.</p>
-                <input type="text" id="v-name-input" placeholder="Aapka Naam">
-                <button class="btn btn-primary" style="height: 70px; font-size: 18px;" onclick="ringTheBell()">🚀 Ring Bell Now</button>
-            </div>
-        </div>
-
     </div>
 
-    <audio id="bell-audio" src="https://www.soundjay.com/phone/phone-calling-1.mp3" preload="auto"></audio>
+    <!-- DASHBOARD SCREEN (Owner) -->
+    <div id="dashScreen" class="screen">
+        <div class="flex-between" style="margin-bottom: 20px;">
+            <div>
+                <h2 style="font-size: 28px; font-weight: 700;">Darwaza</h2>
+                <p id="userGreeting" style="color:#8e8e93; font-size: 13px;">Welcome back</p>
+            </div>
+            <button id="logoutBtn" style="background: none; border: none; font-size: 24px;">🚪</button>
+        </div>
 
-    <script>
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
+        <!-- Active door management -->
+        <div class="glass-card">
+            <div class="door-header">
+                <div>
+                    <span style="font-size: 13px; color:#FF9F0A;">ACTIVE ENTRY</span>
+                    <h3 id="activeDoorName" style="margin-top: 4px;">Loading...</h3>
+                </div>
+                <button id="openAddDoorModalBtn" class="chip" style="background:#FF9F0A20;">+ Add Door</button>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-tile"><span class="stat-number" id="statTotal">0</span><div class="stat-label">Total Visitors</div></div>
+                <div class="stat-tile"><span class="stat-number" id="statAnswered" style="color:#30D158;">0</span><div class="stat-label">Answered</div></div>
+                <div class="stat-tile"><span class="stat-number" id="statMissed" style="color:#FF453A;">0</span><div class="stat-label">Missed</div></div>
+            </div>
+            <div id="qrSection" class="hidden" style="text-align: center;">
+                <div id="qrCodeDisplay" class="qr-container"></div>
+                <div class="flex-between" style="gap: 12px; margin-top: 10px;">
+                    <button id="downloadQRBtn" class="btn" style="background:#2c2c2e; padding: 10px;">📥 Download QR</button>
+                    <button id="shareQRBtn" class="btn" style="background:#2c2c2e; padding: 10px;">🔗 Share</button>
+                </div>
+                <p style="font-size: 10px; margin-top: 8px;">Scan to ring + capture visitor photo</p>
+            </div>
+            <button id="gestureUnlockBtn" class="btn btn-primary" style="margin-top: 12px;">🔔 Enable Doorbell Audio</button>
+        </div>
+
+        <h4 style="margin: 12px 6px;">📋 Live Activity Feed</h4>
+        <div id="activityFeed" class="glass-card" style="max-height: 280px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Add Door Modal (inline screen) -->
+    <div id="addDoorScreen" class="screen">
+        <div class="glass-card">
+            <h3>➕ New Smart Door</h3>
+            <input type="text" id="newDoorNameInput" placeholder="e.g., Main Villa, Office Gate">
+            <button id="confirmCreateDoorBtn" class="btn btn-primary">Generate QR & Create</button>
+            <button id="cancelAddDoorBtn" class="btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Visitor Ring Screen (public) -->
+    <div id="visitorScreen" class="screen">
+        <div class="glass-card" style="text-align: center;">
+            <h2 id="visitorDoorTitle">Smart Door</h2>
+            <div style="font-size: 56px; margin: 12px 0;">🔔</div>
+            <p style="margin-bottom: 8px;">Your name & optional photo</p>
+            <input type="text" id="visitorNameInput" placeholder="Your name">
+            <div style="margin: 10px 0;">
+                <button id="openCameraBtn" class="btn" style="background:#2c2c2e;">📸 Capture photo</button>
+                <video id="cameraPreview" autoplay playsinline class="camera-preview hidden"></video>
+                <canvas id="photoCanvas" class="hidden"></canvas>
+                <div id="photoPreview" style="margin-top: 8px;"></div>
+            </div>
+            <button id="ringVisitorBtn" class="btn btn-primary" style="font-size: 20px;">🚀 Ring the Bell</button>
+            <div id="visitorStatusMsg" style="margin-top: 12px; font-size: 13px; color:#FF9F0A;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ------------------ FIREBASE INIT ------------------
+    const firebaseConfig = {
   apiKey: "AIzaSyCkxPJiYfXmutvzEKStyebV6R0yuoyJcBA",
   authDomain: "smart-door-bell-61052.firebaseapp.com",
   databaseURL: "https://smart-door-bell-61052-default-rtdb.firebaseio.com",
@@ -158,147 +300,311 @@
   appId: "1:443870830392:web:beb328b07cc2ac88fbebcd",
   measurementId: "G-PE6CYZ2KGZ"
 };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.database();
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-        let currentUser = null;
-        let currentDoorId = null;
+    // Global state
+    let currentUserObj = null;
+    let activeDoorId = null;
+    let doorsList = [];        // store user doors
+    let audioUnlocked = false;
+    const bellAudio = new Audio("https://www.soundjay.com/phone/phone-calling-1.mp3");
+    bellAudio.preload = "auto";
+    let cameraStream = null;
+    let capturedImageData = null;   // base64 visitor photo
+    
+    // Helper: show screen
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
 
-        // --- Screen Management ---
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+    // ---------- AUDIO GESTURE UNLOCK (bypass autoplay) ----------
+    function enableAudioGesture() {
+        bellAudio.play().then(() => {
+            bellAudio.pause();
+            bellAudio.currentTime = 0;
+            audioUnlocked = true;
+            const unlockBtn = document.getElementById('gestureUnlockBtn');
+            if(unlockBtn) unlockBtn.innerText = "✅ Audio Ready";
+        }).catch(() => {
+            alert("Tap again to enable doorbell chime (browser policy)");
+        });
+    }
+
+    // ---------- STATS UPDATE (answered/missed logic) ----------
+    async function updateStatsForDoor(doorId) {
+        const alertsRef = db.ref(`alerts/${doorId}`);
+        const snapshot = await alertsRef.once('value');
+        let total = 0, answered = 0, missed = 0;
+        snapshot.forEach(child => {
+            total++;
+            if(child.val().status === 'answered') answered++;
+            else if(child.val().status === 'missed') missed++;
+            else if(!child.val().status) missed++; // default
+        });
+        document.getElementById('statTotal').innerText = total;
+        document.getElementById('statAnswered').innerText = answered;
+        document.getElementById('statMissed').innerText = missed;
+    }
+
+    // generate QR for a specific doorId
+    function generateQRForDoor(doorId, doorName) {
+        const baseUrl = window.location.href.split('?')[0];
+        const visitorUrl = `${baseUrl}?doorId=${doorId}`;
+        const qrDiv = document.getElementById('qrCodeDisplay');
+        qrDiv.innerHTML = "";
+        new QRCode(qrDiv, {
+            text: visitorUrl,
+            width: 160,
+            height: 160,
+            colorDark: "#000000",
+            colorLight: "#FFFFFF"
+        });
+        // store download handler
+        document.getElementById('downloadQRBtn').onclick = () => downloadQRCanvas(doorName);
+        document.getElementById('shareQRBtn').onclick = () => shareQRCode(visitorUrl);
+    }
+
+    async function downloadQRCanvas(doorName) {
+        const qrElement = document.querySelector('#qrCodeDisplay canvas');
+        if(!qrElement) return;
+        const canvas = await html2canvas(qrElement.parentElement, { scale: 3, backgroundColor: '#ffffff' });
+        const link = document.createElement('a');
+        link.download = `Darwaza_${doorName}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+    async function shareQRCode(url) {
+        if(navigator.share) {
+            try { await navigator.share({ title: 'Darwaza Smart Door', text: 'Scan to ring my door', url }); } catch(e) {}
+        } else {
+            navigator.clipboard.writeText(url);
+            alert("QR link copied to clipboard!");
         }
+    }
 
-        // --- Auth Logic ---
-        function login() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).then(res => {
-                currentUser = res.user;
-                initDashboard();
-            }).catch(err => alert("Login failed: " + err.message));
-        }
-
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUser = user;
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('doorId')) {
-                    initVisitor(urlParams.get('doorId'));
-                } else {
-                    initDashboard();
-                }
+    // Load door details after selection
+    async function loadDoor(doorId) {
+        activeDoorId = doorId;
+        const doorSnap = await db.ref(`doors/${doorId}`).once('value');
+        const door = doorSnap.val();
+        if(!door) return;
+        document.getElementById('activeDoorName').innerText = door.name || "Unnamed";
+        document.getElementById('qrSection').classList.remove('hidden');
+        generateQRForDoor(doorId, door.name);
+        updateStatsForDoor(doorId);
+        // listen to realtime alerts
+        const alertsRef = db.ref(`alerts/${doorId}`);
+        alertsRef.off(); // remove old
+        alertsRef.on('value', (snap) => {
+            updateStatsForDoor(doorId);
+            renderActivityFeed(doorId);
+            // Play notification sound if new alert within last 5 seconds & audio unlocked
+            const alerts = [];
+            snap.forEach(child => { alerts.push({ id: child.key, ...child.val() }); });
+            const latest = alerts.sort((a,b)=>b.time - a.time)[0];
+            if(latest && latest.time && (Date.now() - latest.time < 7000) && !latest.ownerRead && audioUnlocked) {
+                bellAudio.play().catch(e=>console.log);
+                // mark as notified
+                db.ref(`alerts/${doorId}/${latest.id}`).update({ ownerRead: true });
             }
         });
+        renderActivityFeed(doorId);
+    }
 
-        // --- Dashboard Logic ---
-        function initDashboard() {
-            document.getElementById('user-name').innerText = currentUser.displayName;
-            showScreen('screen-dash');
-            
-            // Check if user has a door
-            db.ref('user_doors/' + currentUser.uid).once('value', s => {
-                if(s.exists()) {
-                    currentDoorId = s.val().activeDoor;
-                    loadDoorDetails(currentDoorId);
-                }
+    function renderActivityFeed(doorId) {
+        db.ref(`alerts/${doorId}`).orderByChild('time').limitToLast(10).once('value', snap => {
+            const container = document.getElementById('activityFeed');
+            if(!snap.exists()) { container.innerHTML = '<div style="text-align:center; color:#8e8e93;">✨ No rings yet</div>'; return; }
+            let html = '';
+            const items = [];
+            snap.forEach(ch => items.push({ id: ch.key, ...ch.val() }));
+            items.reverse().forEach(alert => {
+                const timeStr = new Date(alert.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                const statusBadge = alert.status === 'answered' ? '✅ Answered' : (alert.status === 'missed' ? '❌ Missed' : '🔔 Ringing');
+                const photoHtml = alert.photo ? `<img src="${alert.photo}" width="40" height="40" style="border-radius:50%; object-fit:cover;">` : '📸';
+                html += `
+                    <div class="visitor-item">
+                        <div class="visitor-avatar">${photoHtml}</div>
+                        <div style="flex:1">
+                            <div><strong>${escapeHtml(alert.visitorName || 'Guest')}</strong> <span style="font-size:11px; color:#FF9F0A;">${statusBadge}</span></div>
+                            <div style="font-size:10px; color:#8e8e93;">${timeStr}</div>
+                            ${alert.status !== 'answered' && alert.status !== 'missed' ? `
+                                <div class="reply-buttons">
+                                    <div class="small-reply" data-alertid="${alert.id}" data-reply="coming">⏱️ 2 min - coming</div>
+                                    <div class="small-reply" data-alertid="${alert.id}" data-reply="leave">📦 Keep parcel, leave</div>
+                                    <div class="small-reply" data-alertid="${alert.id}" data-reply="wait">🕒 Wait 1 min</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
             });
-        }
-
-        function createNewDoor() {
-            const name = document.getElementById('new-door-name').value;
-            if(!name) return alert("Naam likhna lazmi hai!");
-
-            const doorId = "D-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-            const doorData = {
-                name: name,
-                owner: currentUser.uid,
-                createdAt: Date.now()
-            };
-
-            db.ref('doors/' + doorId).set(doorData);
-            db.ref('user_doors/' + currentUser.uid).set({ activeDoor: doorId });
-            
-            currentDoorId = doorId;
-            loadDoorDetails(doorId);
-            showScreen('screen-dash');
-        }
-
-        function loadDoorDetails(id) {
-            db.ref('doors/' + id).once('value', s => {
-                const data = s.val();
-                document.getElementById('current-door-name').innerText = data.name;
-                
-                // QR Generation
-                const visitorUrl = window.location.href.split('?')[0] + "?doorId=" + id;
-                document.getElementById('owner-qr-area').classList.remove('hidden');
-                document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById("qrcode"), {
-                    text: visitorUrl,
-                    width: 160,
-                    height: 160,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff"
+            container.innerHTML = html;
+            // attach reply handlers
+            document.querySelectorAll('.small-reply').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const alertId = el.dataset.alertid;
+                    const replyType = el.dataset.reply;
+                    sendReplyToVisitor(alertId, replyType);
                 });
-
-                startAlertListener(id);
             });
-        }
+        });
+    }
 
-        // --- Monitoring & Audio ---
-        let isAudioUnlocked = false;
-        function unlockAudio() {
-            const audio = document.getElementById('bell-audio');
-            audio.play().then(() => {
-                audio.pause();
-                isAudioUnlocked = true;
-                document.getElementById('activate-bell').innerText = "✅ Audio Active";
-                document.getElementById('activate-bell').style.background = "#30D158";
+    function sendReplyToVisitor(alertId, replyType) {
+        if(!activeDoorId) return;
+        let message = "";
+        if(replyType === "coming") message = "🛎️ Host is coming in 2 minutes.";
+        else if(replyType === "leave") message = "📦 Please leave the item, I'll collect later. Thank you!";
+        else message = "⏳ Just a minute, I'm on my way.";
+        db.ref(`replies/${activeDoorId}/${alertId}`).set({
+            text: message,
+            timestamp: Date.now(),
+            type: replyType
+        });
+        // update alert status to answered
+        db.ref(`alerts/${activeDoorId}/${alertId}`).update({ status: 'answered' });
+        alert(`Reply sent: ${message}`);
+    }
+
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    // Create new door
+    async function createDoor(doorName) {
+        if(!currentUserObj) return;
+        const doorId = "DR" + Date.now() + Math.random().toString(36).substr(2,5);
+        const doorData = { name: doorName, owner: currentUserObj.uid, createdAt: Date.now() };
+        await db.ref(`doors/${doorId}`).set(doorData);
+        await db.ref(`user_doors/${currentUserObj.uid}/${doorId}`).set(true);
+        // set as active
+        await db.ref(`user_meta/${currentUserObj.uid}`).set({ activeDoor: doorId });
+        activeDoorId = doorId;
+        loadDoor(doorId);
+        showScreen('dashScreen');
+    }
+
+    // ---------- VISITOR FLOW (with camera capture) ----------
+    async function initVisitorFlow(doorIdFromUrl) {
+        const doorSnap = await db.ref(`doors/${doorIdFromUrl}`).once('value');
+        if(!doorSnap.exists()) { alert("Door not found"); return; }
+        const doorName = doorSnap.val().name;
+        document.getElementById('visitorDoorTitle').innerText = doorName;
+        showScreen('visitorScreen');
+        // camera handling
+        const camBtn = document.getElementById('openCameraBtn');
+        const video = document.getElementById('cameraPreview');
+        const canvas = document.getElementById('photoCanvas');
+        const previewDiv = document.getElementById('photoPreview');
+        camBtn.onclick = async () => {
+            if(cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                cameraStream = stream;
+                video.classList.remove('hidden');
+                video.srcObject = stream;
+                await video.play();
+                setTimeout(() => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
+                    previewDiv.innerHTML = `<img src="${capturedImageData}" width="80" style="border-radius: 20px; margin-top: 8px;">`;
+                    video.classList.add('hidden');
+                    if(cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+                }, 500);
+            } catch(e) { alert("Camera access needed"); }
+        };
+        document.getElementById('ringVisitorBtn').onclick = async () => {
+            const visitorName = document.getElementById('visitorNameInput').value.trim();
+            if(!visitorName) { alert("Please enter your name"); return; }
+            const alertObj = {
+                visitorName: visitorName,
+                time: Date.now(),
+                status: 'pending',
+                ownerRead: false,
+                photo: capturedImageData || null
+            };
+            await db.ref(`alerts/${doorIdFromUrl}`).push(alertObj);
+            document.getElementById('visitorStatusMsg').innerHTML = "✅ Bell rung! Owner will reply shortly.";
+            // also send push simulation / realtime reply listener
+            db.ref(`replies/${doorIdFromUrl}`).on('value', (snap) => {
+                snap.forEach(child => {
+                    const replyData = child.val();
+                    if(replyData && replyData.timestamp > Date.now() - 30000) {
+                        alert(`📢 Owner says: ${replyData.text}`);
+                        db.ref(`replies/${doorIdFromUrl}/${child.key}`).remove();
+                    }
+                });
             });
-        }
+        };
+    }
 
-        function startAlertListener(id) {
-            db.ref('alerts/' + id).on('value', s => {
-                const alert = s.val();
-                if(alert && (Date.now() - alert.time < 10000)) {
-                    if(isAudioUnlocked) document.getElementById('bell-audio').play();
-                    alert("🔔 " + alert.visitorName + " darwaze par hai!");
-                    updateActivityList(alert.visitorName);
-                }
-            });
+    // Dashboard load after login
+    async function initDashboardAfterLogin() {
+        document.getElementById('userGreeting').innerText = `Hello, ${currentUserObj.displayName || currentUserObj.email}`;
+        const userDoorsSnap = await db.ref(`user_doors/${currentUserObj.uid}`).once('value');
+        const userMeta = await db.ref(`user_meta/${currentUserObj.uid}`).once('value');
+        let active = userMeta.val()?.activeDoor;
+        if(!active) {
+            // if any door exists pick first
+            if(userDoorsSnap.exists()) {
+                const firstKey = Object.keys(userDoorsSnap.val())[0];
+                active = firstKey;
+                await db.ref(`user_meta/${currentUserObj.uid}`).set({ activeDoor: active });
+            }
         }
-
-        function updateActivityList(name) {
-            const list = document.getElementById('activity-list');
-            const item = `<div class="visitor-item">
-                <div class="v-avatar">👤</div>
-                <div class="v-info">
-                    <div class="v-name">${name}</div>
-                    <div class="v-time">Just now</div>
-                </div>
-            </div>`;
-            list.innerHTML = item + list.innerHTML;
+        if(active) {
+            activeDoorId = active;
+            loadDoor(activeDoorId);
+        } else {
+            document.getElementById('activeDoorName').innerText = "No door yet";
+            document.getElementById('qrSection').classList.add('hidden');
         }
+        showScreen('dashScreen');
+    }
 
-        // --- Visitor Logic ---
-        function initVisitor(doorId) {
-            currentDoorId = doorId;
-            showScreen('screen-visitor');
-            db.ref('doors/' + doorId + '/name').once('value', s => {
-                document.getElementById('v-house-name').innerText = s.val() || "Smart Door";
-            });
+    // ---------- AUTH LISTENER ----------
+    auth.onAuthStateChanged(async (user) => {
+        if(user) {
+            currentUserObj = user;
+            const params = new URLSearchParams(window.location.search);
+            const doorParam = params.get('doorId');
+            if(doorParam) {
+                initVisitorFlow(doorParam);
+            } else {
+                await initDashboardAfterLogin();
+            }
+        } else {
+            showScreen('authScreen');
         }
+    });
 
-        function ringTheBell() {
-            const name = document.getElementById('v-name-input').value || "Unknown Visitor";
-            db.ref('alerts/' + currentDoorId).set({
-                visitorName: name,
-                time: Date.now()
-            });
-            alert("✅ Bell baj gayi hai! Intezar karein.");
+    // UI Interactions
+    document.getElementById('googleLoginBtn').onclick = () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(err => alert("Login error: "+err.message));
+    };
+    document.getElementById('logoutBtn')?.addEventListener('click', () => { auth.signOut(); location.reload(); });
+    document.getElementById('openAddDoorModalBtn')?.addEventListener('click', () => showScreen('addDoorScreen'));
+    document.getElementById('confirmCreateDoorBtn')?.addEventListener('click', () => {
+        const name = document.getElementById('newDoorNameInput').value;
+        if(name) createDoor(name);
+        else alert("Enter door name");
+    });
+    document.getElementById('cancelAddDoorBtn')?.addEventListener('click', () => showScreen('dashScreen'));
+    document.getElementById('gestureUnlockBtn')?.addEventListener('click', enableAudioGesture);
+    
+    // if visitor screen from url param on load
+    window.addEventListener('load', () => {
+        const params = new URLSearchParams(window.location.search);
+        if(params.get('doorId') && !currentUserObj) {
+            // will be handled after auth state but we show loading
         }
-
-    </script>
+    });
+</script>
 </body>
 </html>
