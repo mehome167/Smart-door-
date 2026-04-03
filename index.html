@@ -14,17 +14,19 @@
 
     <style>
         :root { --accent: #FF9F0A; --bg: #000000; --card: #1C1C1E; }
-        body { background: var(--bg); color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow-x: hidden; margin: 0; }
+        body { background: var(--bg); color: #fff; font-family: -apple-system, system-ui, sans-serif; margin: 0; }
         .glass { background: rgba(28, 28, 30, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
-        .screen { min-height: 100vh; display: none; padding-bottom: 100px; box-sizing: border-box; }
+        .screen { min-height: 100vh; display: none; padding-bottom: 100px; }
         .active-screen { display: flex; flex-direction: column; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .nav-item.active { color: var(--accent); }
-        input, select { background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 14px; color: white; width: 100%; outline: none; }
+        input { background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 14px; color: white; width: 100%; outline: none; }
         .visitor-img-frame { width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover; background: #1c1c1e; margin: 0 auto 20px; }
         #v-camera { width: 100%; border-radius: 20px; background: #000; display: none; transform: scaleX(-1); margin-bottom: 15px; }
-        .reason-chip { padding: 8px 16px; border-radius: 20px; border: 1px solid #3A3A3C; font-size: 13px; cursor: pointer; transition: 0.2s; }
-        .reason-chip.selected { background: var(--accent); color: black; border-color: var(--accent); }
+        .reason-chip { padding: 8px 16px; border-radius: 20px; border: 1px solid #3A3A3C; font-size: 12px; cursor: pointer; }
+        .reason-chip.selected { background: var(--accent); color: black; }
+        .history-card { background: #1c1c1e; border-radius: 15px; padding: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid #2c2c2e; }
+        .history-img { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; }
     </style>
 </head>
 <body>
@@ -61,68 +63,95 @@
                     <p class="text-orange-400 font-medium">Assalam-o-Alaikum</p>
                     <h1 class="text-3xl font-bold">Dashboard</h1>
                 </div>
-                <button onclick="unlockAudio()" id="audio-btn" class="bg-zinc-800 p-3 rounded-xl text-orange-400">
-                    <i id="audio-icon" class="fa-solid fa-volume-xmark"></i>
-                </button>
+                <button onclick="unlockAudio()" id="audio-btn" class="bg-zinc-800 p-3 rounded-xl text-orange-400"><i id="audio-icon" class="fa-solid fa-volume-xmark"></i></button>
             </div>
             <div class="grid grid-cols-3 gap-3 mb-8">
-                <div class="glass p-4 rounded-2xl text-center"><div class="text-2xl font-bold" id="stat-total">0</div><div class="text-[10px] text-gray-500 uppercase">Total</div></div>
-                <div class="glass p-4 rounded-2xl text-center"><div class="text-2xl font-bold text-green-500" id="stat-answered">0</div><div class="text-[10px] text-gray-500 uppercase">Ans</div></div>
-                <div class="glass p-4 rounded-2xl text-center"><div class="text-2xl font-bold text-red-500" id="stat-missed">0</div><div class="text-[10px] text-gray-500 uppercase">Missed</div></div>
+                <div class="glass p-4 rounded-2xl text-center"><div class="text-xl font-bold" id="stat-total">0</div><div class="text-[10px] text-gray-500 uppercase">Total</div></div>
+                <div class="glass p-4 rounded-2xl text-center"><div class="text-xl font-bold text-green-500" id="stat-answered">0</div><div class="text-[10px] text-gray-500 uppercase">Ans</div></div>
+                <div class="glass p-4 rounded-2xl text-center"><div class="text-xl font-bold text-red-500" id="stat-missed">0</div><div class="text-[10px] text-gray-500 uppercase">Miss</div></div>
             </div>
-            <h3 class="font-bold mb-4">Active Door</h3>
-            <div id="active-door-card" class="glass p-6 rounded-[2rem] text-center mb-6 border border-white/5">
-                <p class="text-gray-500 italic">No door active</p>
+            <h3 class="font-bold mb-4">Aane Walon ki History</h3>
+            <div id="history-list" class="space-y-3">
+                <p class="text-gray-600 text-sm italic text-center">Koi record nahi hai...</p>
             </div>
-            <h3 class="font-bold mb-4">Recent History</h3>
-            <div id="history-list" class="space-y-3"></div>
         </div>
 
         <div id="screen-doors" class="screen p-6">
-            <h1 class="text-3xl font-bold mb-6 pt-6">Manage Doors</h1>
+            <h1 class="text-3xl font-bold mb-6 pt-6">Mere Darwaze</h1>
             <div id="door-list" class="space-y-3 mb-6"></div>
             <div class="glass p-6 rounded-3xl">
-                <input type="text" id="door-name-input" placeholder="Door Name (e.g. Shop Gate)" class="mb-3">
-                <button onclick="addDoor()" class="w-full bg-orange-500 text-black font-bold py-4 rounded-xl">Add New Door</button>
+                <input type="text" id="door-name-input" placeholder="Darwaza ka Naam (e.g. Shop)" class="mb-3">
+                <button onclick="addDoor()" class="w-full bg-orange-500 text-black font-bold py-4 rounded-xl">Naya Darwaza Add Karein</button>
             </div>
         </div>
 
         <div id="screen-qr" class="screen p-6 text-center">
             <h1 class="text-3xl font-bold mb-8 pt-6">QR Terminal</h1>
-            <div class="bg-white p-6 rounded-[2.5rem] inline-block mb-8">
-                <div id="qrcode"></div>
+            <div class="bg-white p-6 rounded-[2.5rem] inline-block mb-8"><div id="qrcode"></div></div>
+            <button onclick="copyQRLink()" class="w-full glass py-4 rounded-2xl font-bold mb-3">Copy Visitor Link</button>
+            <button onclick="resetQRToken()" class="w-full bg-red-500/10 text-red-500 py-4 rounded-2xl font-bold border border-red-500/20">Reset QR Token</button>
+        </div>
+
+        <div id="screen-profile" class="screen p-6">
+            <h1 class="text-3xl font-bold mb-8 pt-6">Profile Settings</h1>
+            <div class="flex flex-col items-center mb-8">
+                <img id="p-img" src="" class="w-24 h-24 rounded-full border-4 border-orange-500 mb-4 object-cover">
+                <h2 id="p-name-top" class="text-xl font-bold">User Name</h2>
+                <p id="p-email-top" class="text-gray-500 text-sm">email@gmail.com</p>
             </div>
-            <div class="flex flex-col gap-3">
-                <button onclick="copyQRLink()" class="glass py-4 rounded-2xl font-bold">Copy Link</button>
-                <button onclick="resetQRToken()" class="bg-red-500/10 text-red-500 py-4 rounded-2xl font-bold border border-red-500/20">Reset QR Token</button>
+            <div class="space-y-4 mb-8">
+                <div><label class="text-[10px] text-gray-500 ml-2 uppercase">WhatsApp Number</label>
+                <input type="text" id="p-whatsapp" placeholder="+92 304 0035377" onchange="saveProfile()"></div>
             </div>
+            <div class="grid grid-cols-2 gap-3 mb-8">
+                <button onclick="nav('privacy')" class="glass py-4 rounded-2xl text-sm font-medium">Privacy Policy</button>
+                <button onclick="nav('contact')" class="glass py-4 rounded-2xl text-sm font-medium">Contact Us</button>
+            </div>
+            <button onclick="auth.signOut()" class="w-full text-red-500 font-bold glass py-4 rounded-2xl">Sign Out</button>
         </div>
 
         <div id="screen-visitor" class="screen p-6 text-center">
             <div class="mt-8">
                 <h2 class="text-2xl font-bold mb-6" id="v-door-title">Smart Doorbell</h2>
-                <video id="v-camera" autoplay playsinline></video>
-                <canvas id="v-canvas" class="hidden"></canvas>
+                <video id="v-camera" autoplay playsinline></video><canvas id="v-canvas" class="hidden"></canvas>
                 <img id="v-preview" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="visitor-img-frame mx-auto">
-                <button id="btn-snap" onclick="startCamera()" class="bg-zinc-800 text-sm px-6 py-3 rounded-full mb-8 border border-white/10">Take Selfie First 📸</button>
-                
+                <button id="btn-snap" onclick="startCamera()" class="bg-zinc-800 text-sm px-6 py-3 rounded-full mb-8 border border-white/10">Photo Lein 📸</button>
                 <input type="text" id="v-name-input" placeholder="Aapka Naam..." class="mb-4">
                 <div class="flex flex-wrap justify-center gap-2 mb-8">
-                    <div class="reason-chip" onclick="selectReason('Doodh Wala', this)">🥛 Doodh</div>
+                    <div class="reason-chip" onclick="selectReason('Doodh', this)">🥛 Doodh</div>
                     <div class="reason-chip" onclick="selectReason('Delivery', this)">📦 Delivery</div>
                     <div class="reason-chip" onclick="selectReason('Mehman', this)">🏠 Guest</div>
                 </div>
-                <button onclick="ringBell()" id="ring-btn" class="w-full bg-orange-500 text-black font-bold py-5 rounded-2xl text-xl shadow-lg opacity-50 pointer-events-none transition">RING BELL NOW</button>
+                <button onclick="ringBell()" id="ring-btn" class="w-full bg-orange-500 text-black font-bold py-5 rounded-2xl text-xl shadow-lg opacity-50 pointer-events-none">RING BELL</button>
             </div>
         </div>
 
-        <div id="screen-profile" class="screen p-6">
-            <h1 class="text-3xl font-bold mb-8 pt-6">Profile Settings</h1>
-            <div class="glass p-6 rounded-3xl mb-6">
-                <label class="text-xs text-gray-500 block mb-2 uppercase">WhatsApp Number</label>
-                <input type="text" id="p-whatsapp" placeholder="+92 300 1234567" onchange="saveProfile()">
+        <div id="screen-contact" class="screen p-6">
+            <div class="flex items-center gap-4 pt-6 mb-8">
+                <button onclick="nav('profile')" class="text-2xl"><i class="fa-solid fa-arrow-left"></i></button>
+                <h1 class="text-3xl font-bold">Contact Us</h1>
             </div>
-            <button onclick="auth.signOut()" class="w-full text-red-500 font-bold glass py-4 rounded-2xl">Sign Out</button>
+            <div class="glass p-8 rounded-[2rem] text-center">
+                <div class="text-5xl mb-4">📞</div>
+                <h2 class="text-xl font-bold mb-2">Ham se Rafta Karein</h2>
+                <p class="text-gray-400 mb-6 text-sm">Koi sawal ya madad chahiye? Neeche diye gaye number par WhatsApp karein.</p>
+                <a href="https://wa.me/923041003537" class="inline-block bg-green-500 text-white px-8 py-4 rounded-2xl font-bold">03040035377</a>
+            </div>
+        </div>
+
+        <div id="screen-privacy" class="screen p-6">
+            <div class="flex items-center gap-4 pt-6 mb-8">
+                <button onclick="nav('profile')" class="text-2xl"><i class="fa-solid fa-arrow-left"></i></button>
+                <h1 class="text-3xl font-bold">Privacy</h1>
+            </div>
+            <div class="glass p-6 rounded-3xl text-sm leading-relaxed text-gray-300">
+                <p class="mb-4">Darwaza Pro aapki security ka khas khyal rakhta hai.</p>
+                <ul class="list-disc ml-5 space-y-2">
+                    <li>Aapka data Firebase security ke sath mahfooz hai.</li>
+                    <li>Visitor ki photo sirf notification dikhane ke liye li jati hai.</li>
+                    <li>Hum aapka private data kisi se share nahi karte.</li>
+                </ul>
+            </div>
         </div>
 
         <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 flex justify-around p-4 z-50 hidden">
@@ -136,8 +165,7 @@
     <audio id="ring-audio" src="https://www.soundjay.com/phone/phone-calling-1.mp3" loop></audio>
 
     <script>
-        // --- Firebase Config (Updated with your real credentials) ---
-        const firebaseConfig = {
+          const firebaseConfig = {
   apiKey: "AIzaSyCkxPJiYfXmutvzEKStyebV6R0yuoyJcBA",
   authDomain: "smart-door-bell-61052.firebaseapp.com",
   databaseURL: "https://smart-door-bell-61052-default-rtdb.firebaseio.com",
@@ -153,105 +181,91 @@
         let user = null; let doors = []; let activeDoorId = null;
         let selectedReason = "General Visit"; let isAudioEnabled = false; let selfieData = null;
 
-        // --- Core Flow Logic ---
         auth.onAuthStateChanged(u => {
             const params = new URLSearchParams(window.location.search);
-            const dId = params.get('doorId');
-            const tk = params.get('tk');
-
-            if(dId && tk) {
-                activeDoorId = dId;
-                nav('visitor');
+            if(params.get('doorId') && params.get('tk')) {
+                activeDoorId = params.get('doorId'); nav('visitor');
             } else if(u) {
-                user = u;
-                document.getElementById('bottom-nav').classList.remove('hidden');
-                nav('home');
-                loadUserData();
-            } else {
-                nav('auth');
-            }
+                user = u; document.getElementById('bottom-nav').classList.remove('hidden'); nav('home'); loadUserData();
+            } else { nav('auth'); }
         });
 
         function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
 
         function loadUserData() {
+            // Profile Info
+            document.getElementById('p-img').src = user.photoURL;
+            document.getElementById('p-name-top').innerText = user.displayName;
+            document.getElementById('p-email-top').innerText = user.email;
+
             db.ref('user_doors/' + user.uid).on('value', s => {
-                const data = s.val() || {};
-                doors = Object.entries(data).map(([id, d]) => ({id, ...d}));
+                doors = Object.entries(s.val() || {}).map(([id, d]) => ({id, ...d}));
                 renderDoorsList();
                 if(doors.length > 0 && !activeDoorId) selectDoor(doors[0].id);
             });
+
             db.ref('stats/' + user.uid).on('value', s => {
                 const st = s.val() || { total: 0, answered: 0, missed: 0 };
                 document.getElementById('stat-total').innerText = st.total;
                 document.getElementById('stat-answered').innerText = st.answered;
                 document.getElementById('stat-missed').innerText = st.missed;
             });
-            db.ref('profiles/' + user.uid).on('value', s => {
-                if(s.val()) document.getElementById('p-whatsapp').value = s.val().whatsapp || "";
+
+            db.ref('history/' + user.uid).limitToLast(10).on('value', s => {
+                const list = document.getElementById('history-list');
+                const data = s.val();
+                if(!data) return;
+                list.innerHTML = Object.values(data).reverse().map(h => `
+                    <div class="history-card">
+                        <img src="${h.selfie || 'https://via.placeholder.com/50'}" class="history-img">
+                        <div class="flex-1">
+                            <p class="font-bold text-sm">${h.name}</p>
+                            <p class="text-[10px] text-gray-500">${h.reason} • ${new Date(h.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        </div>
+                        <span class="text-[9px] px-2 py-1 rounded-full ${h.status==='answered'?'bg-green-500/20 text-green-500':'bg-red-500/20 text-red-500'} uppercase font-bold">${h.status}</span>
+                    </div>
+                `).join('');
             });
+            db.ref('profiles/' + user.uid).on('value', s => { if(s.val()) document.getElementById('p-whatsapp').value = s.val().whatsapp || ""; });
         }
 
-        // --- Door & QR Logic ---
         function addDoor() {
-            const name = document.getElementById('door-name-input').value;
-            if(!name) return;
+            const name = document.getElementById('door-name-input').value; if(!name) return;
             const doorId = "D-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-            const token = Math.random().toString(36).substr(2, 8);
-            db.ref('user_doors/' + user.uid + '/' + doorId).set({ name: name, token: token, owner: user.uid });
+            db.ref('user_doors/' + user.uid + '/' + doorId).set({ name: name, token: Math.random().toString(36).substr(2, 8) });
             document.getElementById('door-name-input').value = "";
         }
 
         function selectDoor(id) {
-            activeDoorId = id;
-            const d = doors.find(x => x.id === id);
+            activeDoorId = id; const d = doors.find(x => x.id === id);
             document.getElementById('active-door-card').innerHTML = `<h2 class="text-2xl font-bold text-orange-400">${d.name}</h2><p class="text-gray-500 text-sm">Monitoring Active</p>`;
-            listenForAlerts(id);
-            renderDoorsList();
+            listenForAlerts(id); renderDoorsList();
         }
 
-        function resetQRToken() {
-            const newToken = Math.random().toString(36).substr(2, 8);
-            db.ref('user_doors/' + user.uid + '/' + activeDoorId).update({ token: newToken });
-            alert("Security Updated!");
-            nav('qr');
-        }
-
-        // --- Camera / Selfie Logic ---
         async function startCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-                const video = document.getElementById('v-camera');
-                video.srcObject = stream; video.style.display = 'block';
+                const video = document.getElementById('v-camera'); video.srcObject = stream; video.style.display = 'block';
                 document.getElementById('v-preview').style.display = 'none';
                 document.getElementById('btn-snap').innerText = "Capture Photo 📸";
                 document.getElementById('btn-snap').onclick = takePhoto;
-            } catch (err) { alert("Camera access denied!"); }
+            } catch (err) { alert("Camera Error!"); }
         }
 
         function takePhoto() {
-            const video = document.getElementById('v-camera');
-            const canvas = document.getElementById('v-canvas');
+            const video = document.getElementById('v-camera'); const canvas = document.getElementById('v-canvas');
             canvas.width = video.videoWidth; canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
             selfieData = canvas.toDataURL('image/jpeg', 0.5);
-            video.srcObject.getTracks().forEach(t => t.stop());
-            video.style.display = 'none';
-            document.getElementById('v-preview').src = selfieData;
-            document.getElementById('v-preview').style.display = 'block';
+            video.srcObject.getTracks().forEach(t => t.stop()); video.style.display = 'none';
+            document.getElementById('v-preview').src = selfieData; document.getElementById('v-preview').style.display = 'block';
             document.getElementById('ring-btn').classList.remove('opacity-50', 'pointer-events-none');
-            document.getElementById('btn-snap').innerText = "Retake Photo";
-            document.getElementById('btn-snap').onclick = startCamera;
+            document.getElementById('btn-snap').innerText = "Retake Photo"; document.getElementById('btn-snap').onclick = startCamera;
         }
 
-        // --- Bell & Alert Logic ---
         function ringBell() {
-            const name = document.getElementById('v-name-input').value || "Guest";
-            db.ref('alerts/' + activeDoorId).set({
-                name: name, reason: selectedReason, selfie: selfieData,
-                time: Date.now(), token: new URLSearchParams(window.location.search).get('tk')
-            });
-            alert("✅ Bell baj gayi hai!");
+            db.ref('alerts/' + activeDoorId).set({ name: document.getElementById('v-name-input').value || "Guest", reason: selectedReason, selfie: selfieData, time: Date.now() });
+            alert("Bell baj gayi!");
         }
 
         function listenForAlerts(id) {
@@ -272,65 +286,34 @@
             document.getElementById('call-overlay').classList.add('hidden');
             document.getElementById('ring-audio').pause();
             db.ref('alerts/' + activeDoorId).once('value', s => {
-                const data = s.val();
-                if(!data) return;
+                const data = s.val(); if(!data) return;
+                db.ref('history/' + user.uid).push({ ...data, status: status });
                 db.ref('stats/' + user.uid + '/total').transaction(c => (c||0)+1);
                 db.ref('stats/' + user.uid + '/' + status).transaction(c => (c||0)+1);
                 db.ref('alerts/' + activeDoorId).remove();
             });
         }
 
-        // --- UI Nav & Helpers ---
         function nav(s) {
             document.querySelectorAll('.screen').forEach(el => el.classList.remove('active-screen'));
-            const target = document.getElementById('screen-' + s);
-            if(target) target.classList.add('active-screen');
-            
-            // Highlight nav icon
+            document.getElementById('screen-' + s).classList.add('active-screen');
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            const navBtn = Array.from(document.querySelectorAll('.nav-item')).find(el => el.getAttribute('onclick').includes(s));
-            if(navBtn) navBtn.classList.add('active');
-
+            const btn = Array.from(document.querySelectorAll('.nav-item')).find(el => el.getAttribute('onclick').includes(s));
+            if(btn) btn.classList.add('active');
             if(s === 'qr' && activeDoorId) {
                 const d = doors.find(x => x.id === activeDoorId);
-                const url = window.location.origin + window.location.pathname + `?doorId=${activeDoorId}&tk=${d.token}`;
-                document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById("qrcode"), { text: url, width: 180, height: 180 });
+                new QRCode(document.getElementById("qrcode"), { text: window.location.origin + window.location.pathname + `?doorId=${activeDoorId}&tk=${d.token}`, width: 180, height: 180 });
             }
         }
 
         function renderDoorsList() {
-            const list = document.getElementById('door-list');
-            if(!list) return;
-            list.innerHTML = doors.map(d => `
-                <div onclick="selectDoor('${d.id}')" class="glass p-4 rounded-2xl flex justify-between items-center ${activeDoorId === d.id ? 'border-orange-500' : ''}">
-                    <p class="font-bold">${d.name}</p>
-                    ${activeDoorId === d.id ? '<i class="fa-solid fa-circle-check text-orange-400"></i>' : ''}
-                </div>
-            `).join('');
+            document.getElementById('door-list').innerHTML = doors.map(d => `<div onclick="selectDoor('${d.id}')" class="glass p-4 rounded-2xl flex justify-between items-center ${activeDoorId === d.id ? 'border-orange-500' : ''}"><p class="font-bold">${d.name}</p>${activeDoorId === d.id ? '<i class="fa-solid fa-circle-check text-orange-400"></i>' : ''}</div>`).join('');
         }
 
-        function selectReason(r, el) {
-            selectedReason = r;
-            document.querySelectorAll('.reason-chip').forEach(c => c.classList.remove('selected'));
-            el.classList.add('selected');
-        }
-
-        function unlockAudio() {
-            const ring = document.getElementById('ring-audio');
-            ring.play().then(() => {
-                ring.pause(); isAudioEnabled = true;
-                document.getElementById('audio-icon').className = 'fa-solid fa-volume-high';
-                document.getElementById('audio-btn').classList.replace('text-orange-400', 'text-green-500');
-            }).catch(e => console.log("Audio interaction needed"));
-        }
-
+        function selectReason(r, el) { selectedReason = r; document.querySelectorAll('.reason-chip').forEach(c => c.classList.remove('selected')); el.classList.add('selected'); }
+        function unlockAudio() { document.getElementById('ring-audio').play().then(() => { document.getElementById('ring-audio').pause(); isAudioEnabled = true; document.getElementById('audio-icon').className = 'fa-solid fa-volume-high'; document.getElementById('audio-btn').classList.replace('text-orange-400', 'text-green-500'); }); }
         function saveProfile() { db.ref('profiles/' + user.uid).update({ whatsapp: document.getElementById('p-whatsapp').value }); }
-        function copyQRLink() {
-            const d = doors.find(x => x.id === activeDoorId);
-            const url = window.location.origin + window.location.pathname + `?doorId=${activeDoorId}&tk=${d.token}`;
-            navigator.clipboard.writeText(url); alert("Link Copied!");
-        }
+        function copyQRLink() { const d = doors.find(x => x.id === activeDoorId); navigator.clipboard.writeText(window.location.origin + window.location.pathname + `?doorId=${activeDoorId}&tk=${d.token}`); alert("Link Copied!"); }
     </script>
 </body>
 </html>
