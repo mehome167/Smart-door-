@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Darwaza Pro • Final</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -12,119 +13,132 @@
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --accent: #FF9F0A; --bg: #000000; --card: #1C1C1E; --text: #ffffff; }
-        .light-mode { --bg: #ffffff; --card: #F2F2F7; --text: #000000; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; margin: 0; }
-        .glass { background: var(--card); border: 1px solid rgba(150,150,150,0.1); border-radius: 20px; }
-        .screen { min-height: 100vh; display: none; padding: 20px; padding-bottom: 100px; }
-        .active-screen { display: flex; flex-direction: column; }
-        input, textarea { background: rgba(150,150,150,0.1); border: 1px solid rgba(150,150,150,0.2); border-radius: 12px; padding: 12px; color: var(--text); width: 100%; margin-bottom: 10px; }
+        :root { --accent: #FF9F0A; --bg: #000000; --text: #ffffff; --card: #1C1C1E; }
+        .light-mode { --bg: #F2F2F7; --text: #000000; --card: #ffffff; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; margin: 0; overflow-x: hidden; }
+        .glass { background: var(--card); border: 1px solid rgba(150,150,150,0.1); backdrop-filter: blur(10px); }
+        .screen { min-height: 100vh; display: none; padding-bottom: 100px; }
+        .active-screen { display: flex; flex-direction: column; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        input, textarea { background: rgba(150,150,150,0.1); border: 1px solid rgba(150,150,150,0.2); border-radius: 12px; padding: 14px; color: var(--text); width: 100%; outline: none; margin-bottom: 10px; }
         .nav-item.active { color: var(--accent); }
+        .chat-bubble { padding: 10px 15px; border-radius: 15px; margin-bottom: 5px; max-width: 80%; font-size: 14px; }
+        .admin-msg { background: var(--accent); color: black; align-self: flex-end; }
+        .visitor-msg { background: rgba(150,150,150,0.2); align-self: flex-start; }
     </style>
 </head>
 <body class="dark-mode">
 
     <div id="call-overlay" class="hidden fixed inset-0 bg-black/95 z-[1000] flex flex-col items-center justify-center p-6 text-center">
-        <h3 class="text-orange-400 animate-pulse font-bold mb-4 uppercase">Visitor at Door</h3>
-        <img id="v-call-img" src="" class="w-32 h-32 rounded-full border-4 border-orange-500 mb-4 object-cover">
-        <h2 id="v-call-name" class="text-2xl font-bold">...</h2>
-        <p id="v-call-reason" class="text-gray-400 mb-6 italic">...</p>
-        
-        <div id="admin-chat-area" class="w-full max-w-sm mb-6 hidden">
-            <input type="text" id="admin-reply-msg" placeholder="Write message (e.g. Ali ghar nahi hai)">
-            <button onclick="sendFinalResponse('answered')" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold">Send & End Call</button>
+        <div id="call-view">
+            <h2 class="text-orange-400 font-bold mb-4 animate-pulse uppercase">Incoming Bell</h2>
+            <img id="v-call-img" src="" class="w-24 h-24 rounded-full border-2 border-orange-500 mx-auto mb-4 object-cover">
+            <h3 id="v-call-name" class="text-2xl font-bold">...</h3>
+            <p id="v-call-reason" class="text-gray-400 mb-8 italic">...</p>
+            <div class="flex gap-10">
+                <button onclick="handleReject()" class="w-20 h-20 bg-red-600 rounded-full text-2xl"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="openAdminChat()" class="w-20 h-20 bg-green-500 rounded-full text-2xl animate-bounce"><i class="fa-solid fa-comment"></i></button>
+            </div>
         </div>
 
-        <div id="call-actions" class="flex gap-10">
-            <button onclick="handleCallReject()" class="w-20 h-20 bg-red-600 rounded-full text-2xl"><i class="fa-solid fa-phone-slash"></i></button>
-            <button onclick="showChatArea()" class="w-20 h-20 bg-green-500 rounded-full text-2xl animate-bounce"><i class="fa-solid fa-message"></i></button>
+        <div id="admin-chat-view" class="hidden w-full max-w-md flex flex-col h-[80vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold">Chatting with Visitor</h3>
+                <button onclick="closeOverlay()" class="text-red-500">End Chat</button>
+            </div>
+            <div id="admin-messages" class="flex-1 overflow-y-auto flex flex-col mb-4 p-2"></div>
+            <div class="flex gap-2">
+                <input type="text" id="admin-chat-input" placeholder="Type your reply...">
+                <button onclick="sendMsg('admin')" class="bg-orange-500 text-black px-6 py-2 rounded-xl font-bold h-12">Send</button>
+            </div>
         </div>
     </div>
 
     <div id="app">
-        <button onclick="toggleTheme()" class="fixed top-5 right-5 z-50 w-10 h-10 glass"><i class="fa-solid fa-circle-half-stroke"></i></button>
+        <button onclick="toggleTheme()" class="fixed top-5 right-5 z-[100] w-10 h-10 rounded-full glass"><i class="fa-solid fa-circle-half-stroke"></i></button>
 
-        <div id="screen-auth" class="screen flex items-center justify-center text-center">
-            <div>
+        <div id="screen-auth" class="screen p-6 text-center justify-center">
+            <div class="mt-20">
                 <h1 class="text-6xl mb-4">🚪</h1>
                 <h2 class="text-3xl font-bold">Darwaza Pro</h2>
-                <p class="text-gray-500 mb-10">Smart Security Solution</p>
-                <button onclick="login()" class="bg-orange-500 text-black font-bold py-4 px-10 rounded-2xl w-full">Login with Google</button>
+                <p class="text-gray-500 mb-10">Admin Access Only</p>
+                <button onclick="login()" class="bg-orange-500 text-black font-bold py-4 px-8 rounded-2xl w-full">Login with Google</button>
             </div>
         </div>
 
-        <div id="screen-home" class="screen">
-            <h1 class="text-2xl font-bold mt-10 mb-2">Assalam-o-Alaikum</h1>
-            <p id="audio-btn" class="text-orange-500 text-sm mb-6" onclick="unlockAudio()">🔔 Tap to Enable Bell Sound</p>
+        <div id="screen-home" class="screen p-6">
+            <div class="pt-10 mb-6">
+                <h1 class="text-2xl font-bold">Assalam-o-Alaikum</h1>
+                <p id="audio-status" class="text-orange-500 text-sm" onclick="unlockAudio()">Tap to enable sound 🔔</p>
+            </div>
             <div class="grid grid-cols-3 gap-3 mb-8">
-                <div class="glass p-4 text-center"><p id="s-total" class="font-bold">0</p><p class="text-[10px] opacity-50">TOTAL</p></div>
-                <div class="glass p-4 text-center"><p id="s-ans" class="font-bold text-green-500">0</p><p class="text-[10px] opacity-50">ANS</p></div>
-                <div class="glass p-4 text-center"><p id="s-miss" class="font-bold text-red-500">0</p><p class="text-[10px] opacity-50">MISS</p></div>
+                <div class="glass p-4 rounded-2xl text-center"><p id="s-total" class="font-bold">0</p><p class="text-[10px] opacity-50">TOTAL</p></div>
+                <div class="glass p-4 rounded-2xl text-center"><p id="s-ans" class="font-bold text-green-500">0</p><p class="text-[10px] opacity-50">ANS</p></div>
+                <div class="glass p-4 rounded-2xl text-center"><p id="s-miss" class="font-bold text-red-500">0</p><p class="text-[10px] opacity-50">MISS</p></div>
             </div>
-            <h3 class="font-bold mb-4">Recent History</h3>
-            <div id="history-list" class="space-y-3"></div>
+            <h3 class="font-bold mb-4">Aane Walay</h3>
+            <div id="history-list" class="space-y-3 overflow-y-auto"></div>
         </div>
 
-        <div id="screen-profile" class="screen">
-            <h1 class="text-2xl font-bold mt-10 mb-6">User Profile</h1>
-            <div class="flex flex-col items-center mb-6">
-                <img id="p-img" src="" class="w-24 h-24 rounded-full border-2 border-orange-500 mb-2 object-cover">
-                <button onclick="alert('Google photo automatic sync hai.')" class="text-[10px] text-orange-400 uppercase">Change Photo</button>
-            </div>
-            <div class="glass p-6 space-y-4 mb-4">
-                <input type="text" id="p-fname" placeholder="First Name">
-                <input type="text" id="p-lname" placeholder="Last Name">
-                <input type="text" id="p-phone" placeholder="WhatsApp Number">
-                <button onclick="saveProfile()" class="w-full bg-orange-500 text-black py-3 rounded-xl font-bold">Update Profile</button>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="nav('privacy')" class="glass py-4 text-sm">Privacy Policy</button>
-                <button onclick="nav('contact')" class="glass py-4 text-sm">Contact Us</button>
-            </div>
-        </div>
-
-        <div id="screen-visitor" class="screen text-center">
-            <div id="v-form" class="mt-10">
-                <h2 class="text-2xl font-bold mb-6">Enter Details</h2>
-                <video id="v-cam" autoplay playsinline class="hidden w-full rounded-2xl mb-4"></video>
+        <div id="screen-visitor" class="screen p-6 text-center">
+            <div id="visitor-form" class="mt-10">
+                <h2 class="text-2xl font-bold mb-6">Visitor Details</h2>
+                <video id="v-camera" autoplay playsinline class="mb-4"></video>
                 <img id="v-preview" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-32 h-32 rounded-full mx-auto mb-6 object-cover border-2 border-orange-500">
-                <button onclick="startCam()" id="snap-btn" class="glass px-6 py-2 text-xs mb-6">📸 Take Photo</button>
+                <button id="btn-snap" onclick="startCamera()" class="glass px-6 py-2 rounded-full text-xs mb-6">📸 Take Selfie</button>
                 <input type="text" id="v-name" placeholder="Aapka Naam">
-                <textarea id="v-reason" placeholder="Wajah-e-Aamad (e.g. Rashid se milna hai)" class="h-24"></textarea>
-                <button onclick="ringBell()" id="ring-btn" class="w-full bg-orange-500 text-black py-4 rounded-xl font-bold text-lg opacity-50 pointer-events-none">RING BELL</button>
+                <textarea id="v-reason" placeholder="Kyun Aaye Hain?" class="h-24"></textarea>
+                <button onclick="ringBell()" id="ring-btn" class="w-full bg-orange-500 text-black font-bold py-5 rounded-2xl text-xl opacity-50 pointer-events-none">RING BELL</button>
             </div>
-            <div id="v-wait" class="hidden mt-20">
-                <div class="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                <h3 class="text-xl font-bold">Ghar walon ka intezar karein...</h3>
-                <div id="msg-from-owner" class="hidden mt-10 p-6 border-2 border-orange-500 rounded-3xl bg-orange-500/10">
-                    <p class="text-xs text-orange-500 font-bold uppercase mb-2">Message Received:</p>
-                    <p id="owner-txt" class="text-xl italic">"..."</p>
+
+            <div id="visitor-chat-view" class="hidden mt-10 h-[80vh] flex flex-col">
+                <h2 class="text-xl font-bold mb-4">Waiting for Response...</h2>
+                <div id="visitor-messages" class="flex-1 overflow-y-auto flex flex-col mb-4 p-2 glass rounded-2xl"></div>
+                <div id="visitor-input-area" class="hidden">
+                    <p id="msg-limit-text" class="text-[10px] text-gray-500 mb-2">Remaining Messages: 5</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="visitor-chat-input" placeholder="Type message...">
+                        <button onclick="sendMsg('visitor')" class="bg-orange-500 text-black px-4 rounded-xl">Send</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="screen-contact" class="screen">
-            <h1 class="text-2xl font-bold mt-10 mb-6">Contact Us</h1>
-            <div class="glass p-8 text-center">
-                <p class="mb-4">Koi madad chahiye? Humse rabta karein:</p>
-                <a href="https://wa.me/923041003537" class="text-2xl font-bold text-green-500">03041003537</a>
+        <div id="screen-profile" class="screen p-6">
+            <h1 class="text-2xl font-bold pt-10 mb-8">Settings</h1>
+            <div class="flex flex-col items-center mb-8">
+                <img id="p-img" src="" class="w-24 h-24 rounded-full border-2 border-orange-500 mb-4 object-cover">
+                <h2 id="p-display-name" class="font-bold text-lg">User</h2>
             </div>
-            <button onclick="nav('profile')" class="mt-6 w-full glass py-4">Back</button>
+            <div class="glass p-6 rounded-3xl space-y-4">
+                <input type="text" id="p-fname" placeholder="First Name">
+                <input type="text" id="p-lname" placeholder="Last Name">
+                <input type="text" id="p-phone" placeholder="Phone Number">
+                <button onclick="saveProfile()" class="w-full bg-orange-500 text-black font-bold py-3 rounded-xl">Update Profile</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <button class="glass py-4 rounded-2xl text-xs">Privacy Policy</button>
+                <button class="glass py-4 rounded-2xl text-xs">Contact Us</button>
+            </div>
+            <button onclick="auth.signOut()" class="w-full mt-6 text-red-500 font-bold">Sign Out</button>
         </div>
 
-        <div id="screen-doors" class="screen">
-            <h1 class="text-2xl font-bold mt-10 mb-6">My Doors</h1>
-            <div id="door-list" class="space-y-3 mb-6"></div>
-            <input type="text" id="d-name" placeholder="Door Name">
-            <button onclick="addDoor()" class="w-full bg-orange-500 text-black py-4 rounded-xl font-bold">Add Door</button>
+        <div id="screen-doors" class="screen p-6">
+            <h1 class="text-2xl font-bold pt-10 mb-6">My Doors (Max 10)</h1>
+            <div id="door-list" class="space-y-3 mb-10"></div>
+            <div id="add-door-ui">
+                <input type="text" id="door-name-input" placeholder="Door Name">
+                <button onclick="addDoor()" class="bg-orange-500 text-black font-bold w-full py-4 rounded-xl">Add New Door</button>
+            </div>
         </div>
-        <div id="screen-qr" class="screen text-center">
-            <h1 class="text-2xl font-bold mt-10 mb-10">QR Terminal</h1>
+
+        <div id="screen-qr" class="screen p-6 text-center">
+            <h1 class="text-2xl font-bold pt-10 mb-10">QR Code</h1>
             <div class="bg-white p-4 rounded-3xl inline-block mb-10"><div id="qrcode"></div></div>
-            <button onclick="copyQR()" class="w-full glass py-4">Copy Link</button>
+            <button onclick="copyLink()" class="w-full glass py-4 rounded-2xl">Copy Link</button>
         </div>
 
-        <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 glass flex justify-around p-4 hidden z-50">
+        <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 glass flex justify-around p-4 z-50 hidden">
             <button onclick="nav('home')" class="nav-item"><i class="fa-solid fa-house"></i></button>
             <button onclick="nav('doors')" class="nav-item"><i class="fa-solid fa-door-open"></i></button>
             <button onclick="nav('qr')" class="nav-item"><i class="fa-solid fa-qrcode"></i></button>
@@ -132,49 +146,57 @@
         </nav>
     </div>
 
-    <audio id="ring-snd" src="https://www.soundjay.com/phone/phone-calling-1.mp3" loop></audio>
+    <audio id="ring-audio" src="https://www.soundjay.com/phone/phone-calling-1.mp3" loop></audio>
 
     <script>
-        const config = { apiKey: "AIzaSyCkxPJiYfXmutvzEKStyebV6R0yuoyJcBA", authDomain: "smart-door-bell-61052.firebaseapp.com", databaseURL: "https://smart-door-bell-61052-default-rtdb.firebaseio.com", projectId: "smart-door-bell-61052", storageBucket: "smart-door-bell-61052.firebasestorage.app", messagingSenderId: "443870830392", appId: "1:443870830392:web:beb328b07cc2ac88fbebcd" };
-        firebase.initializeApp(config);
+        const firebaseConfig = { apiKey: "AIzaSyCkxPJiYfXmutvzEKStyebV6R0yuoyJcBA", authDomain: "smart-door-bell-61052.firebaseapp.com", databaseURL: "https://smart-door-bell-61052-default-rtdb.firebaseio.com", projectId: "smart-door-bell-61052", storageBucket: "smart-door-bell-61052.firebasestorage.app", messagingSenderId: "443870830392", appId: "1:443870830392:web:beb328b07cc2ac88fbebcd" };
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(); const db = firebase.database();
 
-        let user = null; let activeDoorId = null; let selfie = null; let soundOn = false;
+        let user = null; let activeDoorId = null; let selfieData = null; let isAudio = false;
+        let msgCount = 5;
 
         auth.onAuthStateChanged(u => {
-            const p = new URLSearchParams(window.location.search);
-            if(p.get('doorId')) { activeDoorId = p.get('doorId'); nav('visitor'); listenForReply(); }
-            else if(u) { user = u; document.getElementById('bottom-nav').classList.remove('hidden'); nav('home'); load(); }
-            else { nav('auth'); }
+            const params = new URLSearchParams(window.location.search);
+            if(params.get('doorId')) {
+                activeDoorId = params.get('doorId'); 
+                nav('visitor');
+                listenForChat();
+            } else if(u) {
+                user = u; document.getElementById('bottom-nav').classList.remove('hidden'); nav('home'); loadAdminData();
+            } else { nav('auth'); }
         });
 
         function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
 
-        function load() {
+        function loadAdminData() {
             db.ref('profiles/' + user.uid).on('value', s => {
-                const d = s.val() || { fname: user.displayName.split(' ')[0], lname: user.displayName.split(' ')[1]||'', phone: '03041003537' };
+                const d = s.val() || { fname: user.displayName.split(' ')[0], lname: '', phone: '03041003537' };
                 document.getElementById('p-img').src = user.photoURL;
+                document.getElementById('p-display-name').innerText = d.fname + " " + (d.lname||"");
                 document.getElementById('p-fname').value = d.fname;
-                document.getElementById('p-lname').value = d.lname;
+                document.getElementById('p-lname').value = d.lname || "";
                 document.getElementById('p-phone').value = d.phone;
             });
             db.ref('user_doors/' + user.uid).on('value', s => {
-                const doors = Object.entries(s.val()||{}).map(([id,v])=>({id,...v}));
-                if(doors.length > 0 && !activeDoorId) activeDoorId = doors[0].id;
-                document.getElementById('door-list').innerHTML = doors.map(d => `<div onclick="activeDoorId='${d.id}';nav('home')" class="glass p-4 ${activeDoorId==d.id?'border-orange-500':''}">${d.name}</div>`).join('');
-                if(activeDoorId) listenAlerts(activeDoorId);
-            });
-            db.ref('stats/' + user.uid).on('value', s => {
-                const d = s.val() || {total:0, answered:0, missed:0};
-                document.getElementById('s-total').innerText = d.total; document.getElementById('s-ans').innerText = d.answered; document.getElementById('s-miss').innerText = d.missed;
+                const data = Object.entries(s.val() || {}).map(([id, d]) => ({id, ...d}));
+                if(data.length >= 10) document.getElementById('add-door-ui').style.display = 'none';
+                if(data.length > 0 && !activeDoorId) selectDoor(data[0].id);
+                document.getElementById('door-list').innerHTML = data.map(d => `<div onclick="selectDoor('${d.id}')" class="glass p-4 rounded-2xl flex justify-between ${activeDoorId==d.id?'border-orange-500':''}"><p>${d.name}</p></div>`).join('');
             });
             db.ref('history/' + user.uid).limitToLast(5).on('value', s => {
                 const h = s.val() || {};
-                document.getElementById('history-list').innerHTML = Object.values(h).reverse().map(v => `<div class="glass p-3 flex items-center gap-3"><img src="${v.selfie}" class="w-10 h-10 rounded-full"><div class="flex-1 text-xs"><p class="font-bold">${v.name}</p><p class="opacity-50">${v.reason}</p></div></div>`).join('');
+                document.getElementById('history-list').innerHTML = Object.values(h).reverse().map(v => `<div class="glass p-3 rounded-2xl flex gap-3 items-center"><img src="${v.selfie}" class="w-10 h-10 rounded-full"><div class="flex-1 text-xs"><p class="font-bold">${v.name}</p><p class="opacity-50">${v.reason}</p></div></div>`).join('');
+            });
+            db.ref('stats/' + user.uid).on('value', s => {
+                const st = s.val() || {total:0, answered:0, missed:0};
+                document.getElementById('s-total').innerText = st.total; document.getElementById('s-ans').innerText = st.answered; document.getElementById('s-miss').innerText = st.missed;
             });
         }
 
-        function listenAlerts(id) {
+        function selectDoor(id) { activeDoorId = id; listenForAlerts(id); }
+
+        function listenForAlerts(id) {
             db.ref('alerts/' + id).on('value', s => {
                 const d = s.val();
                 if(d && (Date.now() - d.time < 60000)) {
@@ -182,89 +204,113 @@
                     document.getElementById('v-call-reason').innerText = d.reason;
                     document.getElementById('v-call-img').src = d.selfie;
                     document.getElementById('call-overlay').classList.remove('hidden');
-                    if(soundOn) document.getElementById('ring-snd').play();
-                } else {
-                    document.getElementById('call-overlay').classList.add('hidden');
-                    document.getElementById('ring-snd').pause();
-                }
+                    if(isAudio) document.getElementById('ring-audio').play();
+                } else { closeOverlay(); }
             });
         }
 
-        function showChatArea() {
-            document.getElementById('call-actions').classList.add('hidden');
-            document.getElementById('admin-chat-area').classList.remove('hidden');
+        function handleReject() {
+            db.ref('chats/' + activeDoorId).push({ sender: 'admin', text: 'Ruke darvaje per main a raha hun.', time: Date.now() });
+            finalizeAlert('missed');
         }
 
-        function handleCallReject() { sendFinalResponse('missed', 'Ji, hum abhi masroof hain, baad mein baat hogi.'); }
+        function openAdminChat() {
+            document.getElementById('call-view').classList.add('hidden');
+            document.getElementById('admin-chat-view').classList.remove('hidden');
+            listenForChat();
+        }
 
-        function sendFinalResponse(status, autoMsg = null) {
-            const msg = autoMsg || document.getElementById('admin-reply-msg').value || "Ji, aa rahe hain.";
+        function finalizeAlert(status) {
             db.ref('alerts/' + activeDoorId).once('value', s => {
-                const d = s.val(); if(!d) return;
-                db.ref('responses/' + activeDoorId).set({ message: msg, time: Date.now() });
-                db.ref('history/' + user.uid).push({ ...d, status: status });
+                const data = s.val(); if(!data) return;
+                db.ref('history/' + user.uid).push({ ...data, status: status });
                 db.ref('stats/' + user.uid + '/' + status).transaction(c => (c||0)+1);
                 db.ref('stats/' + user.uid + '/total').transaction(c => (c||0)+1);
                 db.ref('alerts/' + activeDoorId).remove();
-                document.getElementById('admin-chat-area').classList.add('hidden');
-                document.getElementById('call-actions').classList.remove('hidden');
             });
         }
 
-        function ringBell() {
-            const n = document.getElementById('v-name').value; const r = document.getElementById('v-reason').value;
-            if(!n || !r) return alert("Details bharein!");
-            db.ref('alerts/' + activeDoorId).set({ name: n, reason: r, selfie: selfie, time: Date.now() });
-            document.getElementById('v-form').classList.add('hidden'); document.getElementById('v-wait').classList.remove('hidden');
-        }
-
-        function listenForReply() {
-            db.ref('responses/' + activeDoorId).on('value', s => {
-                const d = s.val();
-                if(d && (Date.now() - d.time < 120000)) {
-                    document.getElementById('msg-from-owner').classList.remove('hidden');
-                    document.getElementById('owner-txt').innerText = d.message;
+        function listenForChat() {
+            db.ref('chats/' + activeDoorId).on('value', s => {
+                const msgs = Object.values(s.val() || {});
+                const html = msgs.map(m => `<div class="chat-bubble ${m.sender=='admin'?'admin-msg':'visitor-msg'}">${m.text}</div>`).join('');
+                if(document.getElementById('admin-messages')) document.getElementById('admin-messages').innerHTML = html;
+                if(document.getElementById('visitor-messages')) {
+                    document.getElementById('visitor-messages').innerHTML = html;
+                    document.getElementById('visitor-input-area').classList.remove('hidden');
                 }
             });
         }
 
-        function saveProfile() {
-            db.ref('profiles/' + user.uid).set({
-                fname: document.getElementById('p-fname').value,
-                lname: document.getElementById('p-lname').value,
-                phone: document.getElementById('p-phone').value
-            });
-            alert("Profile Updated!");
+        function sendMsg(sender) {
+            const input = document.getElementById(sender + '-chat-input');
+            if(!input.value) return;
+            if(sender == 'visitor' && msgCount <= 0) return alert("Message limit reached!");
+            
+            db.ref('chats/' + activeDoorId).push({ sender: sender, text: input.value, time: Date.now() });
+            if(sender == 'visitor') {
+                msgCount--;
+                document.getElementById('msg-limit-text').innerText = "Remaining Messages: " + msgCount;
+            }
+            input.value = "";
         }
 
-        async function startCam() {
-            const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-            const v = document.getElementById('v-cam'); v.srcObject = st; v.classList.remove('hidden');
-            document.getElementById('v-preview').classList.add('hidden');
-            document.getElementById('snap-btn').innerText = "Capture";
-            document.getElementById('snap-btn').onclick = () => {
+        function ringBell() {
+            const n = document.getElementById('v-name').value;
+            const r = document.getElementById('v-reason').value;
+            if(!n || !r || !selfieData) return alert("Pehle apni selfie aur details bharein!");
+            db.ref('alerts/' + activeDoorId).set({ name: n, reason: r, selfie: selfieData, time: Date.now() });
+            document.getElementById('visitor-form').classList.add('hidden');
+            document.getElementById('visitor-chat-view').classList.remove('hidden');
+        }
+
+        async function startCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            const v = document.getElementById('v-camera'); v.srcObject = stream; v.style.display = 'block';
+            document.getElementById('v-preview').style.display = 'none';
+            document.getElementById('btn-snap').innerText = "Capture Selfie 📸";
+            document.getElementById('btn-snap').onclick = () => {
                 const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
                 c.getContext('2d').drawImage(v, 0, 0);
-                selfie = c.toDataURL('image/jpeg', 0.5);
-                st.getTracks().forEach(t => t.stop());
-                v.classList.add('hidden'); document.getElementById('v-preview').src = selfie;
-                document.getElementById('v-preview').classList.remove('hidden');
+                selfieData = c.toDataURL('image/jpeg', 0.5);
+                stream.getTracks().forEach(t => t.stop());
+                v.style.display = 'none'; document.getElementById('v-preview').src = selfieData;
+                document.getElementById('v-preview').style.display = 'block';
                 document.getElementById('ring-btn').classList.remove('opacity-50', 'pointer-events-none');
             };
         }
 
+        function saveProfile() {
+            db.ref('profiles/' + user.uid).update({
+                fname: document.getElementById('p-fname').value,
+                lname: document.getElementById('p-lname').value,
+                phone: document.getElementById('p-phone').value
+            });
+            alert("Profile Saved!");
+        }
+
+        function addDoor() {
+            const name = document.getElementById('door-name-input').value;
+            if(name) db.ref('user_doors/' + user.uid).push({ name: name });
+        }
+
         function nav(s) {
-            document.querySelectorAll('.screen').forEach(e => e.classList.remove('active-screen'));
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active-screen'));
             document.getElementById('screen-' + s).classList.add('active-screen');
             if(s=='qr') {
                 document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById("qrcode"), { text: window.location.href + "?doorId=" + activeDoorId, width: 180, height: 180 });
+                new QRCode(document.getElementById("qrcode"), { text: window.location.origin + window.location.pathname + "?doorId=" + activeDoorId, width: 200, height: 200 });
             }
         }
+        function closeOverlay() { 
+            document.getElementById('call-overlay').classList.add('hidden'); 
+            document.getElementById('call-view').classList.remove('hidden');
+            document.getElementById('admin-chat-view').classList.add('hidden');
+            document.getElementById('ring-audio').pause(); 
+        }
         function toggleTheme() { document.body.classList.toggle('light-mode'); }
-        function unlockAudio() { soundOn = true; document.getElementById('audio-btn').innerText = "Sound Enabled ✅"; }
-        function addDoor() { db.ref('user_doors/' + user.uid).push({ name: document.getElementById('d-name').value }); }
-        function copyQR() { navigator.clipboard.writeText(window.location.href + "?doorId=" + activeDoorId); alert("Link Copied!"); }
+        function unlockAudio() { isAudio = true; document.getElementById('audio-status').innerText = "Sound Enabled ✅"; }
+        function copyLink() { navigator.clipboard.writeText(window.location.origin + window.location.pathname + "?doorId=" + activeDoorId); alert("Link Copied!"); }
     </script>
 </body>
 </html>
