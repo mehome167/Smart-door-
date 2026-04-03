@@ -15,45 +15,60 @@
     <style>
         :root { --accent: #FF9F0A; --bg: #000000; --text: #ffffff; --card: #1C1C1E; }
         .light-mode { --bg: #F2F2F7; --text: #000000; --card: #ffffff; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; margin: 0; overflow-x: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: 0.3s; margin: 0; overflow-x: hidden; }
         .glass { background: var(--card); border: 1px solid rgba(150,150,150,0.1); backdrop-filter: blur(10px); }
         .screen { min-height: 100vh; display: none; padding-bottom: 100px; }
         .active-screen { display: flex; flex-direction: column; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        input, textarea { background: rgba(150,150,150,0.1); border: 1px solid rgba(150,150,150,0.2); border-radius: 12px; padding: 14px; color: var(--text); width: 100%; outline: none; margin-bottom: 10px; }
-        .nav-item.active { color: var(--accent); }
-        .chat-bubble { padding: 10px 15px; border-radius: 15px; margin-bottom: 5px; max-width: 85%; font-size: 14px; line-height: 1.4; }
-        .admin-msg { background: var(--accent); color: black; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .visitor-msg { background: rgba(150,150,150,0.2); align-self: flex-start; border-bottom-left-radius: 2px; }
+        input, textarea, select { background: rgba(150,150,150,0.1); border: 1px solid rgba(150,150,150,0.2); border-radius: 12px; padding: 14px; color: var(--text); width: 100%; outline: none; margin-bottom: 10px; }
+        .chat-bubble { padding: 10px 15px; border-radius: 15px; margin-bottom: 5px; max-width: 85%; font-size: 14px; }
+        .admin-msg { background: var(--accent); color: black; align-self: flex-end; }
+        .visitor-msg { background: rgba(150,150,150,0.2); align-self: flex-start; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: none; padding: 20px; overflow-y: auto; }
     </style>
 </head>
 <body class="dark-mode">
 
+    <div id="history-modal" class="modal">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="font-bold text-xl" data-key="visitorDetails">Visitor Details</h2>
+            <button onclick="closeHistoryModal()" class="text-2xl text-red-500">&times;</button>
+        </div>
+        <div class="glass p-6 rounded-3xl text-center space-y-4">
+            <img id="hist-img" src="" class="w-32 h-32 rounded-full mx-auto border-4 border-orange-500 object-cover">
+            <h3 id="hist-name" class="text-2xl font-bold">...</h3>
+            <p id="hist-time" class="text-xs text-orange-500 font-mono"></p>
+            <div class="bg-black/20 p-4 rounded-xl text-left">
+                <p class="text-[10px] opacity-50 uppercase" data-key="reason">Reason</p>
+                <p id="hist-reason" class="text-sm">...</p>
+            </div>
+            <hr class="opacity-10">
+            <div class="text-left">
+                <p class="text-[10px] opacity-50 uppercase mb-2" data-key="chatHistory">Chat History</p>
+                <div id="hist-chats" class="space-y-2 flex flex-col"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="call-overlay" class="hidden fixed inset-0 bg-black/95 z-[1000] flex flex-col items-center justify-center p-6 text-center">
         <div id="call-view">
-            <h2 class="text-orange-400 font-bold mb-4 animate-pulse">INCOMING BELL</h2>
+            <h2 class="text-orange-400 font-bold mb-4 animate-pulse uppercase" data-key="incomingBell">Incoming Bell</h2>
             <img id="v-call-img" src="" class="w-24 h-24 rounded-full border-2 border-orange-500 mx-auto mb-4 object-cover">
             <h3 id="v-call-name" class="text-2xl font-bold">...</h3>
             <p id="v-call-reason" class="text-gray-400 mb-8 italic text-sm">...</p>
             <div class="flex gap-10">
-                <button onclick="handleReject()" class="w-20 h-20 bg-red-600 rounded-full text-2xl shadow-lg shadow-red-600/20"><i class="fa-solid fa-person-walking"></i></button>
-                <button onclick="openAdminChat()" class="w-20 h-20 bg-green-500 rounded-full text-2xl animate-bounce shadow-lg shadow-green-500/20"><i class="fa-solid fa-comment"></i></button>
+                <button onclick="handleReject()" class="w-20 h-20 bg-red-600 rounded-full text-2xl shadow-lg"><i class="fa-solid fa-person-walking"></i></button>
+                <button onclick="openAdminChat()" class="w-20 h-20 bg-green-500 rounded-full text-2xl animate-bounce shadow-lg"><i class="fa-solid fa-comment"></i></button>
             </div>
-            <p class="text-[10px] mt-6 opacity-30">Red: "Aa raha hoon" | Green: Start Chat</p>
         </div>
-
         <div id="admin-chat-view" class="hidden w-full max-w-md flex flex-col h-[90vh]">
             <div class="flex justify-between items-center mb-4 glass p-3 rounded-2xl">
-                <div class="flex items-center gap-2 text-left">
-                    <img id="chat-v-img" src="" class="w-8 h-8 rounded-full border border-orange-500">
-                    <span id="chat-v-name" class="font-bold text-sm">Chat</span>
-                </div>
-                <button onclick="endSession()" class="text-xs bg-red-600/20 text-red-500 px-3 py-1 rounded-full border border-red-500/20">End & Save</button>
-                <button onclick="closeOverlayOnly()" class="text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+                <span id="chat-v-name" class="font-bold">Chat</span>
+                <button onclick="endSession()" class="text-xs bg-red-600 text-white px-4 py-1 rounded-full" data-key="endSession">End Session</button>
             </div>
             <div id="admin-messages" class="flex-1 overflow-y-auto flex flex-col mb-4 p-2 space-y-2"></div>
             <div class="flex gap-2 p-2 glass rounded-2xl">
-                <input type="text" id="admin-chat-input" placeholder="Jawab likhein..." class="mb-0 border-none">
+                <input type="text" id="admin-chat-input" placeholder="Type..." class="mb-0 border-none">
                 <button onclick="sendMsg('admin')" class="bg-orange-500 text-black px-5 rounded-xl font-bold"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
@@ -65,51 +80,47 @@
         <div id="screen-auth" class="screen p-6 text-center justify-center">
             <h1 class="text-6xl mb-4">🚪</h1>
             <h2 class="text-3xl font-bold">Darwaza Pro</h2>
-            <p class="text-gray-500 mb-10 text-sm">Designed by M. Muneer</p>
-            <button onclick="login()" class="bg-orange-500 text-black font-bold py-4 px-8 rounded-2xl w-full">Login with Google</button>
+            <p class="text-gray-500 mb-10 text-sm">Design by M. Muneer</p>
+            <button onclick="login()" class="bg-orange-500 text-black font-bold py-4 px-8 rounded-2xl w-full" data-key="login">Login with Google</button>
         </div>
 
         <div id="screen-home" class="screen p-6">
             <div class="pt-10 mb-6 flex justify-between items-end">
-                <div><h1 class="text-2xl font-bold">Assalam-o-Alaikum</h1><p id="audio-status" class="text-orange-500 text-[10px] uppercase font-bold" onclick="unlockAudio()">🔔 Sound: Off (Tap to ON)</p></div>
+                <div><h1 class="text-2xl font-bold" data-key="welcome">Assalam-o-Alaikum</h1><p id="audio-status" class="text-orange-500 text-[10px] font-bold" onclick="unlockAudio()">🔔 SOUND: OFF (TAP TO ON)</p></div>
             </div>
             
             <div class="grid grid-cols-3 gap-3 mb-6">
-                <div class="glass p-4 rounded-2xl text-center"><p id="s-total" class="font-bold">0</p><p class="text-[9px] opacity-40 uppercase">Total</p></div>
-                <div class="glass p-4 rounded-2xl text-center"><p id="s-ans" class="font-bold text-green-500">0</p><p class="text-[9px] opacity-40 uppercase">Ans</p></div>
-                <div class="glass p-4 rounded-2xl text-center"><p id="s-miss" class="font-bold text-red-500">0</p><p class="text-[9px] opacity-40 uppercase">Miss</p></div>
+                <div class="glass p-4 rounded-2xl text-center"><p id="s-total" class="font-bold">0</p><p class="text-[9px] opacity-40 uppercase" data-key="total">Total</p></div>
+                <div class="glass p-4 rounded-2xl text-center"><p id="s-ans" class="font-bold text-green-500">0</p><p class="text-[9px] opacity-40 uppercase" data-key="ans">Ans</p></div>
+                <div class="glass p-4 rounded-2xl text-center"><p id="s-miss" class="font-bold text-red-500">0</p><p class="text-[9px] opacity-40 uppercase" data-key="miss">Miss</p></div>
             </div>
 
             <div id="active-chats-container" class="hidden mb-6">
-                <h3 class="font-bold text-sm mb-3 flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full animate-ping"></span> Live Visitor Chat</h3>
+                <h3 class="font-bold text-sm mb-3 flex items-center gap-2" data-key="liveVisitor">Live Visitor Chat</h3>
                 <div id="active-chat-card" onclick="openAdminChat()" class="glass p-4 rounded-2xl border-l-4 border-green-500 flex items-center gap-4">
                     <img id="active-v-img" src="" class="w-12 h-12 rounded-full object-cover">
-                    <div class="flex-1"><p id="active-v-name" class="font-bold">...</p><p class="text-xs text-orange-500">Awaiting your reply</p></div>
-                    <i class="fa-solid fa-chevron-right opacity-30 text-xs"></i>
+                    <div class="flex-1"><p id="active-v-name" class="font-bold">...</p><p class="text-xs text-orange-500" data-key="awaiting">Awaiting reply</p></div>
                 </div>
             </div>
 
-            <h3 class="font-bold text-sm mb-3">Recent Visitors</h3>
+            <h3 class="font-bold text-sm mb-3" data-key="recent">Recent Visitors</h3>
             <div id="history-list" class="space-y-3 overflow-y-auto"></div>
         </div>
 
         <div id="screen-visitor" class="screen p-6 text-center">
             <div id="visitor-form" class="mt-10">
-                <h2 class="text-2xl font-bold mb-6">Enter Details</h2>
                 <video id="v-camera" autoplay playsinline class="mb-4 rounded-3xl w-full"></video>
                 <img id="v-preview" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-32 h-32 rounded-full mx-auto mb-6 object-cover border-4 border-orange-500">
-                <button id="btn-snap" onclick="startCamera()" class="glass px-6 py-2 rounded-full text-xs mb-6">📸 Take Selfie</button>
+                <button id="btn-snap" onclick="startCamera()" class="glass px-6 py-2 rounded-full text-xs mb-6" data-key="takeSelfie">📸 Take Selfie</button>
                 <input type="text" id="v-name" placeholder="Aapka Naam">
-                <textarea id="v-reason" placeholder="Kis liye aaye hain?" class="h-24"></textarea>
-                <button onclick="ringBell()" id="ring-btn" class="w-full bg-orange-500 text-black font-bold py-5 rounded-2xl text-xl opacity-50 pointer-events-none">RING BELL</button>
+                <textarea id="v-reason" placeholder="Wajah?" class="h-24"></textarea>
+                <button onclick="ringBell()" id="ring-btn" class="w-full bg-orange-500 text-black font-bold py-5 rounded-2xl text-xl opacity-50 pointer-events-none" data-key="ringBell">RING BELL</button>
             </div>
-
             <div id="visitor-chat-view" class="hidden mt-10 h-[80vh] flex flex-col">
                 <div id="visitor-messages" class="flex-1 overflow-y-auto flex flex-col mb-4 p-4 glass rounded-3xl space-y-2 text-left"></div>
-                <div id="visitor-input-area" class="hidden glass p-3 rounded-2xl">
-                    <p id="msg-limit-text" class="text-[10px] text-gray-500 mb-2">Remaining: 5 Messages</p>
+                <div id="visitor-input-area" class="glass p-3 rounded-2xl">
                     <div class="flex gap-2">
-                        <input type="text" id="visitor-chat-input" placeholder="Type here..." class="mb-0 border-none">
+                        <input type="text" id="visitor-chat-input" placeholder="Type..." class="mb-0 border-none">
                         <button onclick="sendMsg('visitor')" class="bg-orange-500 text-black px-4 rounded-xl"><i class="fa-solid fa-paper-plane"></i></button>
                     </div>
                 </div>
@@ -117,57 +128,45 @@
         </div>
 
         <div id="screen-profile" class="screen p-6">
-            <h1 class="text-2xl font-bold pt-10 mb-8 text-center">Settings</h1>
+            <h1 class="text-2xl font-bold pt-10 mb-8 text-center" data-key="settings">Settings</h1>
             <div class="glass p-6 rounded-3xl space-y-4 mb-4">
-                <div class="flex justify-center mb-4"><img id="p-img" src="" class="w-20 h-20 rounded-full border-2 border-orange-500"></div>
+                <select id="lang-select" onchange="changeLang(this.value)">
+                    <option value="roman">Roman English</option>
+                    <option value="urdu">اردو (Urdu)</option>
+                    <option value="hindi">हिन्दी (Hindi)</option>
+                </select>
                 <input type="text" id="p-fname" placeholder="First Name">
-                <input type="text" id="p-lname" placeholder="Last Name">
                 <input type="text" id="p-phone" placeholder="Phone Number">
-                <button onclick="saveProfile()" class="w-full bg-orange-500 text-black font-bold py-3 rounded-xl">Save Changes</button>
+                <button onclick="saveProfile()" class="w-full bg-orange-500 text-black font-bold py-3 rounded-xl" data-key="saveChanges">Save Changes</button>
             </div>
-            <div class="grid grid-cols-2 gap-3 mb-6">
-                <button onclick="nav('privacy')" class="glass py-4 rounded-2xl text-[10px] uppercase font-bold tracking-widest">Privacy Policy</button>
-                <button onclick="nav('contact')" class="glass py-4 rounded-2xl text-[10px] uppercase font-bold tracking-widest">Contact Us</button>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="nav('privacy')" class="glass py-4 rounded-2xl text-[10px] font-bold" data-key="privacy">PRIVACY</button>
+                <button onclick="nav('contact')" class="glass py-4 rounded-2xl text-[10px] font-bold" data-key="contact">CONTACT</button>
             </div>
-            <button onclick="auth.signOut()" class="w-full text-red-500 text-sm font-bold opacity-50 uppercase">Sign Out</button>
         </div>
 
         <div id="screen-doors" class="screen p-6">
-            <h1 class="text-2xl font-bold pt-10 mb-6">Manage Doors</h1>
+            <h1 class="text-2xl font-bold pt-10 mb-6" data-key="manageDoors">Manage Doors</h1>
             <div id="door-list" class="space-y-3 mb-10"></div>
-            <div id="add-door-ui" class="glass p-4 rounded-2xl">
-                <input type="text" id="door-name-input" placeholder="Door Location (e.g. Shop)">
-                <button onclick="addDoor()" class="bg-orange-500 text-black font-bold w-full py-4 rounded-xl">Add New Door</button>
-            </div>
+            <input type="text" id="door-name-input" placeholder="Door Name">
+            <button onclick="addDoor()" class="bg-orange-500 text-black font-bold w-full py-4 rounded-xl" data-key="addDoor">Add New Door</button>
         </div>
 
         <div id="screen-qr" class="screen p-6 text-center">
-            <h1 class="text-2xl font-bold pt-10 mb-10">QR Code Terminal</h1>
-            <div class="bg-white p-5 rounded-3xl inline-block mb-10 shadow-2xl shadow-orange-500/10"><div id="qrcode"></div></div>
+            <h1 class="text-2xl font-bold pt-10 mb-6" data-key="qrTitle">Door QR Codes</h1>
+            <select id="qr-door-selector" onchange="updateQRDisplay()" class="mb-6"></select>
+            <div class="bg-white p-5 rounded-3xl inline-block mb-6"><div id="qrcode"></div></div>
+            <p id="qr-door-label" class="text-orange-500 font-bold mb-6 text-sm uppercase"></p>
             <button onclick="downloadQR()" class="w-full bg-white text-black font-bold py-4 rounded-2xl mb-3 flex items-center justify-center gap-2"><i class="fa-solid fa-download"></i> Download QR</button>
-            <button onclick="copyLink()" class="w-full glass py-4 rounded-2xl opacity-50 text-xs">Copy Direct Link</button>
         </div>
 
         <div id="screen-contact" class="screen p-6 text-center">
-            <h1 class="text-2xl font-bold pt-10 mb-8">Contact Us</h1>
-            <div class="glass p-8 rounded-3xl mb-10">
-                <div class="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fa-solid fa-headset"></i></div>
+            <h1 class="text-2xl font-bold pt-10 mb-8" data-key="contact">Contact Us</h1>
+            <div class="glass p-8 rounded-3xl">
                 <h3 class="font-bold mb-2">Designer Support</h3>
-                <p class="text-sm opacity-60 mb-6">Application developer se rabta karne ke liye niche WhatsApp button par click karein.</p>
-                <a href="https://wa.me/923041003537" class="text-2xl font-bold text-orange-500 tracking-wider">03041003537</a>
+                <a href="https://wa.me/923041003537" class="text-2xl font-bold text-orange-500">03041003537</a>
             </div>
-            <button onclick="nav('profile')" class="glass px-10 py-3 rounded-full text-xs uppercase">Back</button>
-        </div>
-
-        <div id="screen-privacy" class="screen p-6">
-            <h1 class="text-2xl font-bold pt-10 mb-8">Privacy Policy</h1>
-            <div class="glass p-6 rounded-3xl text-sm leading-relaxed space-y-4 max-h-[60vh] overflow-y-auto">
-                <p>1. <b>Data Collection:</b> Hum sirf visitor ka naam, wajah aur selfie mehfooz karte hain taake aapko security alert mil sake.</p>
-                <p>2. <b>Security:</b> Aapka data Firebase security rules ke tahat mahfooz hai. Koi ghair-mutaliqa shaks ise nahi dekh sakta.</p>
-                <p>3. <b>Photos:</b> Visitor ki li gayi selfie sirf bell ke duration ke liye istemal hoti hai aur history mein save rehti hai.</p>
-                <p>4. <b>Chat:</b> Tamam chats end-to-end encrypted nahi hain lekin sirf Admin aur Visitor ke darmiyan mehdood hain.</p>
-            </div>
-            <button onclick="nav('profile')" class="mt-8 w-full glass py-4 rounded-2xl text-xs uppercase">I Understand</button>
+            <button onclick="nav('profile')" class="mt-6 uppercase text-xs" data-key="back">Back</button>
         </div>
 
         <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 glass flex justify-around p-4 z-50 hidden">
@@ -185,36 +184,49 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(); const db = firebase.database();
 
-        let user = null; let activeDoorId = null; let selfieData = null; let isAudio = false; let msgCount = 5; let activeVisitorData = null;
+        let user = null; let activeDoorId = null; let selfieData = null; let isAudio = false; let activeVisitorData = null;
+        let allDoors = [];
+        const langData = {
+            roman: { welcome: "Assalam-o-Alaikum", total: "Total", ans: "Ans", miss: "Miss", recent: "Recent Visitors", settings: "Settings", qrTitle: "Door QR Codes", manageDoors: "Manage Doors", takeSelfie: "Take Selfie", ringBell: "Ring Bell", login: "Login with Google", saveChanges: "Save Changes", privacy: "Privacy Policy", contact: "Contact Us", back: "Back", visitorDetails: "Visitor Details", reason: "Reason", chatHistory: "Chat History", incomingBell: "Incoming Bell", endSession: "End Session", liveVisitor: "Live Visitor Chat", awaiting: "Awaiting reply" },
+            urdu: { welcome: "اسلام علیکم", total: "کل", ans: "جواب دیا", miss: "مس", recent: "حالیہ مہمان", settings: "سیٹنگز", qrTitle: "دروازے کا کیو آر", manageDoors: "دروازوں کا انتظام", takeSelfie: "سیلفی لیں", ringBell: "گھنٹی بجائیں", login: "گوگل سے لاگ ان کریں", saveChanges: "تبدیلیاں محفوظ کریں", privacy: "پرائیویسی پالیسی", contact: "رابطہ کریں", back: "واپس", visitorDetails: "مہمان کی تفصیلات", reason: "وجہ", chatHistory: "بات چیت کی ہسٹری", incomingBell: "گھنٹی بج رہی ہے", endSession: "ختم کریں", liveVisitor: "لائیو چیٹ", awaiting: "جواب کا انتظار" },
+            hindi: { welcome: "नमस्ते", total: "कुल", ans: "उत्तर दिया", miss: "छूٹا", recent: "हाल के आगंतुक", settings: "सेटिंग्स", qrTitle: "दरवाजे का क्यूआर", manageDoors: "दरवाजों का प्रबंधन", takeSelfie: "सेल्फी लें", ringBell: "घंटी बजाएं", login: "गूगल से लॉगिन करें", saveChanges: "परिवर्तन सहेजें", privacy: "गोपनीयता नीति", contact: "संपर्क करें", back: "पीछे", visitorDetails: "आगंतुक विवरण", reason: "कारण", chatHistory: "चैट इतिहास", incomingBell: "घंटी बज रही है", endSession: "सत्र समाप्त", liveVisitor: "लाइव चैट", awaiting: "उत्तर की प्रतीक्षा" }
+        };
 
         auth.onAuthStateChanged(u => {
             const params = new URLSearchParams(window.location.search);
-            if(params.get('doorId')) {
-                activeDoorId = params.get('doorId'); nav('visitor'); listenForChat();
-            } else if(u) {
-                user = u; document.getElementById('bottom-nav').classList.remove('hidden'); nav('home'); loadAdminData();
-            } else { nav('auth'); }
+            if(params.get('doorId')) { activeDoorId = params.get('doorId'); nav('visitor'); listenForChat(); }
+            else if(u) { user = u; document.getElementById('bottom-nav').classList.remove('hidden'); nav('home'); loadAdminData(); }
+            else { nav('auth'); }
         });
 
         function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
 
         function loadAdminData() {
             db.ref('profiles/' + user.uid).on('value', s => {
-                const d = s.val() || { fname: user.displayName.split(' ')[0], lname: '', phone: '03041003537' };
+                const d = s.val() || {};
                 document.getElementById('p-img').src = user.photoURL;
-                document.getElementById('p-fname').value = d.fname;
-                document.getElementById('p-lname').value = d.lname || "";
-                document.getElementById('p-phone').value = d.phone;
+                document.getElementById('p-fname').value = d.fname || user.displayName;
+                document.getElementById('p-phone').value = d.phone || "03041003537";
+                if(d.lang) changeLang(d.lang);
             });
             db.ref('user_doors/' + user.uid).on('value', s => {
-                const data = Object.entries(s.val() || {}).map(([id, d]) => ({id, ...d}));
-                if(data.length >= 10) document.getElementById('add-door-ui').style.display = 'none';
-                if(data.length > 0 && !activeDoorId) selectDoor(data[0].id);
-                document.getElementById('door-list').innerHTML = data.map(d => `<div onclick="selectDoor('${d.id}')" class="glass p-4 rounded-2xl flex justify-between ${activeDoorId==d.id?'border-orange-500':''}"><p>${d.name}</p></div>`).join('');
+                allDoors = Object.entries(s.val() || {}).map(([id, d]) => ({id, ...d}));
+                document.getElementById('door-list').innerHTML = allDoors.map(d => `<div onclick="selectDoor('${d.id}')" class="glass p-4 rounded-2xl flex justify-between ${activeDoorId==d.id?'border-orange-500':''}"><p>${d.name}</p><button onclick="deleteDoor('${d.id}')" class="text-red-500 text-xs">Delete</button></div>`).join('');
+                const sel = document.getElementById('qr-door-selector');
+                sel.innerHTML = allDoors.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                if(allDoors.length > 0 && !activeDoorId) selectDoor(allDoors[0].id);
             });
-            db.ref('history/' + user.uid).limitToLast(5).on('value', s => {
+            db.ref('history/' + user.uid).on('value', s => {
                 const h = s.val() || {};
-                document.getElementById('history-list').innerHTML = Object.values(h).reverse().map(v => `<div class="glass p-3 rounded-2xl flex gap-3 items-center"><img src="${v.selfie}" class="w-10 h-10 rounded-full"><div class="flex-1 text-xs"><p class="font-bold">${v.name}</p><p class="opacity-50">${v.reason}</p></div><div class="text-[8px] opacity-40 uppercase">${v.status}</div></div>`).join('');
+                document.getElementById('history-list').innerHTML = Object.entries(h).reverse().map(([key, v]) => `
+                    <div onclick="openHistoryModal('${key}')" class="glass p-3 rounded-2xl flex gap-3 items-center">
+                        <img src="${v.selfie}" class="w-10 h-10 rounded-full object-cover">
+                        <div class="flex-1 text-xs">
+                            <p class="font-bold">${v.name}</p>
+                            <p class="opacity-50 text-[10px]">${v.dateTime || ''}</p>
+                        </div>
+                        <div class="text-[8px] opacity-40 uppercase border px-2 rounded-full">${v.status}</div>
+                    </div>`).join('');
             });
             db.ref('stats/' + user.uid).on('value', s => {
                 const st = s.val() || {total:0, answered:0, missed:0};
@@ -222,7 +234,7 @@
             });
         }
 
-        function selectDoor(id) { activeDoorId = id; listenForAlerts(id); }
+        function selectDoor(id) { activeDoorId = id; listenForAlerts(id); updateQRDisplay(); }
 
         function listenForAlerts(id) {
             db.ref('alerts/' + id).on('value', s => {
@@ -234,45 +246,10 @@
                     document.getElementById('v-call-img').src = d.selfie;
                     document.getElementById('call-overlay').classList.remove('hidden');
                     if(isAudio) document.getElementById('ring-audio').play();
-                    
-                    // Show in Inbox too
                     document.getElementById('active-chats-container').classList.remove('hidden');
                     document.getElementById('active-v-name').innerText = d.name;
                     document.getElementById('active-v-img').src = d.selfie;
-                } else if(!document.getElementById('admin-chat-view').classList.contains('hidden')) {
-                    // Stay if chatting
-                } else { closeOverlayOnly(); }
-            });
-        }
-
-        function handleReject() {
-            db.ref('chats/' + activeDoorId).push({ sender: 'admin', text: 'Ruke darvaje per main a raha hun.', time: Date.now() });
-            finalizeAlert('missed');
-            closeOverlayOnly();
-        }
-
-        function openAdminChat() {
-            document.getElementById('call-view').classList.add('hidden');
-            document.getElementById('admin-chat-view').classList.remove('hidden');
-            document.getElementById('chat-v-name').innerText = activeVisitorData?.name || "Visitor";
-            document.getElementById('chat-v-img').src = activeVisitorData?.selfie || "";
-            listenForChat();
-        }
-
-        function endSession() {
-            finalizeAlert('answered');
-            db.ref('chats/' + activeDoorId).remove();
-            document.getElementById('active-chats-container').classList.add('hidden');
-            closeOverlayOnly();
-        }
-
-        function finalizeAlert(status) {
-            db.ref('alerts/' + activeDoorId).once('value', s => {
-                const data = s.val() || activeVisitorData; if(!data) return;
-                db.ref('history/' + user.uid).push({ ...data, status: status });
-                db.ref('stats/' + user.uid + '/' + status).transaction(c => (c||0)+1);
-                db.ref('stats/' + user.uid + '/total').transaction(c => (c||0)+1);
-                db.ref('alerts/' + activeDoorId).remove();
+                }
             });
         }
 
@@ -280,81 +257,132 @@
             db.ref('chats/' + activeDoorId).on('value', s => {
                 const msgs = Object.values(s.val() || {});
                 const html = msgs.map(m => `<div class="chat-bubble ${m.sender=='admin'?'admin-msg':'visitor-msg'}">${m.text}</div>`).join('');
-                if(document.getElementById('admin-messages')) {
-                    document.getElementById('admin-messages').innerHTML = html;
-                    document.getElementById('admin-messages').scrollTop = document.getElementById('admin-messages').scrollHeight;
-                }
+                if(document.getElementById('admin-messages')) document.getElementById('admin-messages').innerHTML = html;
                 if(document.getElementById('visitor-messages')) {
                     document.getElementById('visitor-messages').innerHTML = html;
-                    document.getElementById('visitor-messages').scrollTop = document.getElementById('visitor-messages').scrollHeight;
-                    document.getElementById('visitor-input-area').classList.remove('hidden');
+                    document.getElementById('visitor-chat-view').classList.remove('hidden');
                 }
             });
+        }
+
+        function endSession() {
+            db.ref('chats/' + activeDoorId).once('value', s => {
+                const transcript = Object.values(s.val() || {});
+                finalizeAlert('answered', transcript);
+                db.ref('chats/' + activeDoorId).remove();
+                document.getElementById('active-chats-container').classList.add('hidden');
+                closeOverlayOnly();
+            });
+        }
+
+        function handleReject() {
+            db.ref('chats/' + activeDoorId).push({ sender: 'admin', text: 'Aa raha hoon.', time: Date.now() });
+            finalizeAlert('missed', [{sender:'admin', text:'Aa raha hoon'}]);
+            closeOverlayOnly();
+        }
+
+        function finalizeAlert(status, transcript = []) {
+            db.ref('alerts/' + activeDoorId).once('value', s => {
+                const data = s.val() || activeVisitorData; if(!data) return;
+                const entry = { ...data, status: status, dateTime: new Date().toLocaleString(), chatLog: transcript };
+                db.ref('history/' + user.uid).push(entry);
+                db.ref('stats/' + user.uid + '/' + status).transaction(c => (c||0)+1);
+                db.ref('stats/' + user.uid + '/total').transaction(c => (c||0)+1);
+                db.ref('alerts/' + activeDoorId).remove();
+            });
+        }
+
+        function openHistoryModal(key) {
+            db.ref('history/' + user.uid + '/' + key).once('value', s => {
+                const v = s.val();
+                document.getElementById('hist-img').src = v.selfie;
+                document.getElementById('hist-name').innerText = v.name;
+                document.getElementById('hist-reason').innerText = v.reason;
+                document.getElementById('hist-time').innerText = v.dateTime;
+                const chatHtml = (v.chatLog || []).map(m => `
+                    <div class="p-2 rounded-lg text-xs ${m.sender=='admin'?'bg-orange-500/20 text-right':'bg-white/5 text-left'}">
+                        <b class="uppercase text-[8px] block opacity-50">${m.sender}</b>${m.text}
+                    </div>`).join('');
+                document.getElementById('hist-chats').innerHTML = chatHtml || '<p class="text-center opacity-30 text-xs">No chat recorded</p>';
+                document.getElementById('history-modal').style.display = 'block';
+            });
+        }
+
+        function closeHistoryModal() { document.getElementById('history-modal').style.display = 'none'; }
+
+        function updateQRDisplay() {
+            const doorId = document.getElementById('qr-door-selector').value || activeDoorId;
+            const door = allDoors.find(d => d.id === doorId);
+            if(!doorId) return;
+            document.getElementById('qrcode').innerHTML = "";
+            new QRCode(document.getElementById("qrcode"), { text: window.location.origin + window.location.pathname + "?doorId=" + doorId, width: 200, height: 200 });
+            document.getElementById('qr-door-label').innerText = "Door: " + (door?.name || "Selected");
+        }
+
+        function changeLang(lang) {
+            const data = langData[lang];
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if(data[key]) el.innerText = data[key];
+            });
+            if(user) db.ref('profiles/' + user.uid).update({ lang: lang });
         }
 
         function sendMsg(sender) {
             const input = document.getElementById(sender + '-chat-input');
             if(!input.value) return;
-            if(sender == 'visitor' && msgCount <= 0) return alert("Message limit reached!");
             db.ref('chats/' + activeDoorId).push({ sender: sender, text: input.value, time: Date.now() });
-            if(sender == 'visitor') { msgCount--; document.getElementById('msg-limit-text').innerText = "Remaining: " + msgCount + " Messages"; }
             input.value = "";
         }
 
         function ringBell() {
             const n = document.getElementById('v-name').value;
             const r = document.getElementById('v-reason').value;
-            if(!n || !r || !selfieData) return alert("Please fill all details and take selfie!");
+            if(!n || !r || !selfieData) return alert("Details missing!");
             db.ref('alerts/' + activeDoorId).set({ name: n, reason: r, selfie: selfieData, time: Date.now() });
             document.getElementById('visitor-form').classList.add('hidden');
-            document.getElementById('visitor-chat-view').classList.remove('hidden');
         }
 
         async function startCamera() {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             const v = document.getElementById('v-camera'); v.srcObject = stream; v.style.display = 'block';
-            document.getElementById('v-preview').style.display = 'none';
-            document.getElementById('btn-snap').innerText = "Capture Now";
             document.getElementById('btn-snap').onclick = () => {
                 const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
                 c.getContext('2d').drawImage(v, 0, 0);
                 selfieData = c.toDataURL('image/jpeg', 0.5);
                 stream.getTracks().forEach(t => t.stop());
                 v.style.display = 'none'; document.getElementById('v-preview').src = selfieData;
-                document.getElementById('v-preview').style.display = 'block';
                 document.getElementById('ring-btn').classList.remove('opacity-50', 'pointer-events-none');
             };
         }
 
         function saveProfile() {
-            db.ref('profiles/' + user.uid).update({ fname: document.getElementById('p-fname').value, lname: document.getElementById('p-lname').value, phone: document.getElementById('p-phone').value });
-            alert("Profile Saved!");
+            db.ref('profiles/' + user.uid).update({ fname: document.getElementById('p-fname').value, phone: document.getElementById('p-phone').value });
+            alert("Saved!");
         }
+
+        function addDoor() {
+            const name = document.getElementById('door-name-input').value;
+            if(name) db.ref('user_doors/' + user.uid).push({ name: name });
+        }
+
+        function deleteDoor(id) { if(confirm("Delete this door?")) db.ref('user_doors/' + user.uid + '/' + id).remove(); }
 
         function downloadQR() {
             const img = document.querySelector("#qrcode img");
-            if(!img) return alert("QR not ready!");
-            const link = document.createElement("a"); link.href = img.src; link.download = "Darwaza_Pro_QR.png"; link.click();
+            const doorName = document.getElementById('qr-door-label').innerText;
+            const link = document.createElement("a"); link.href = img.src; link.download = doorName + "_QR.png"; link.click();
         }
 
         function nav(s) {
             document.querySelectorAll('.screen').forEach(el => el.classList.remove('active-screen'));
             document.getElementById('screen-' + s).classList.add('active-screen');
-            if(s=='qr') {
-                document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById("qrcode"), { text: window.location.origin + window.location.pathname + "?doorId=" + activeDoorId, width: 200, height: 200 });
-            }
+            if(s=='qr') updateQRDisplay();
         }
-        function closeOverlayOnly() { 
-            document.getElementById('call-overlay').classList.add('hidden'); 
-            document.getElementById('call-view').classList.remove('hidden');
-            document.getElementById('admin-chat-view').classList.add('hidden');
-            document.getElementById('ring-audio').pause(); 
-        }
+        function closeOverlayOnly() { document.getElementById('call-overlay').classList.add('hidden'); document.getElementById('admin-chat-view').classList.add('hidden'); document.getElementById('call-view').classList.remove('hidden'); document.getElementById('ring-audio').pause(); }
         function toggleTheme() { document.body.classList.toggle('light-mode'); }
-        function unlockAudio() { isAudio = true; document.getElementById('audio-status').innerText = "🔔 Sound: ON"; }
-        function copyLink() { navigator.clipboard.writeText(window.location.origin + window.location.pathname + "?doorId=" + activeDoorId); alert("Link Copied!"); }
-        function addDoor() { const name = document.getElementById('door-name-input').value; if(name) db.ref('user_doors/' + user.uid).push({ name: name }); }
+        function unlockAudio() { isAudio = true; document.getElementById('audio-status').innerText = "🔔 SOUND: ON"; }
+        function copyLink() { const id = document.getElementById('qr-door-selector').value; navigator.clipboard.writeText(window.location.origin + window.location.pathname + "?doorId=" + id); alert("Link Copied!"); }
     </script>
 </body>
 </html>
