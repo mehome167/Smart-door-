@@ -62,6 +62,7 @@
                 <button onclick="openAdminChat()" class="w-20 h-20 bg-green-500 rounded-full text-2xl animate-bounce shadow-lg shadow-green-500/30"><i class="fa-solid fa-comment"></i></button>
             </div>
         </div>
+        
         <div id="admin-chat-view" class="hidden w-full max-w-md flex flex-col h-[90vh]">
             <div class="flex justify-between items-center mb-4 glass p-4 rounded-2xl">
                 <div class="flex items-center gap-3">
@@ -90,7 +91,7 @@
 
         <div id="screen-home" class="screen p-6">
             <div class="pt-10 mb-6 flex justify-between items-end">
-                <div><h1 class="text-2xl font-bold" data-key="welcome">Assalam-o-Alaikum</h1><p id="audio-status" class="text-orange-500 text-[10px] font-bold" onclick="unlockAudio()">🔔 SOUND: OFF (TAP TO ON)</p></div>
+                <div><h1 class="text-2xl font-bold" data-key="welcome">Assalam-o-Alaikum</h1><p id="audio-status" class="text-orange-500 text-[10px] font-bold cursor-pointer" onclick="unlockAudio()">🔔 SOUND: OFF (TAP TO ON)</p></div>
             </div>
             
             <div class="grid grid-cols-3 gap-3 mb-6">
@@ -224,7 +225,7 @@
         const langData = {
             roman: { welcome: "Assalam-o-Alaikum", total: "Total", ans: "Ans", miss: "Miss", recent: "Recent Visitors", settings: "Profile Settings", qrTitle: "Terminal QR", manageDoors: "Manage Doors", takeSelfie: "Take Selfie", ringBell: "Ring Bell", login: "Login with Google", saveChanges: "Save Changes", privacy: "Privacy Policy", contact: "Contact Us", back: "Back", visitorDetails: "Visitor Details", reason: "Reason", chatHistory: "Full Chat Log", incomingBell: "Ganti Baj Rahi Hai", endSession: "END & SAVE", liveVisitor: "Live Chat", awaiting: "Jawab ka intezar hai" },
             urdu: { welcome: "اسلام علیکم", total: "کل", ans: "جواب دیا", miss: "مس", recent: "حالیہ مہمان", settings: "پروفائل سیٹنگز", qrTitle: "کیو آر ٹرمینل", manageDoors: "دروازوں کا انتظام", takeSelfie: "سیلفی لیں", ringBell: "گھنٹی بجائیں", login: "گوگل سے لاگ ان کریں", saveChanges: "تبدیلیاں محفوظ کریں", privacy: "پرائیویسی پالیسی", contact: "رابطہ کریں", back: "واپس", visitorDetails: "مہمان کی تفصیلات", reason: "وجہ", chatHistory: "چیٹ ہسٹری", incomingBell: "گھنٹی بج رہی ہے", endSession: "ختم اور سیو کریں", liveVisitor: "لائیو چیٹ", awaiting: "جواب کا انتظار ہے" },
-            hindi: { welcome: "नमस्ते", total: "कुल", ans: "उत्तर दिया", miss: "छूٹا", recent: "हाल के आगंतुक", settings: "प्रोफ़ाइल सेटिंग्स", qrTitle: "क्यूआर टर्मिनल", manageDoors: "दरवाजों का प्रबंधन", takeSelfie: "सेल्फी लें", ringBell: "घंटी बजाएं", login: "गूगल से लॉगिन करें", saveChanges: "परिवर्तन सहेजें", privacy: "गोपनीयता नीति", contact: "संपर्क करें", back: "पीछे", visitorDetails: "आगंतुक विवरण", reason: "कारण", chatHistory: "चैट इतिहास", incomingBell: "घंटी बज रही है", endSession: "समाप्त और सहेजें", liveVisitor: "लाइव चैट", awaiting: "उत्तर की प्रतीक्षा" }
+            hindi: { welcome: "नमस्ते", total: "कुल", ans: "उत्तर दिया", miss: "छूٹا", recent: "हाल के आगंतुक", settings: "प्रोफ़ाइल सेटिंग्स", qrTitle: "क्यूआर टर्मिनल", manageDoors: "दरवाजों का प्रबंधन", takeSelfie: "सेल्फी लें", ringBell: "घंटी बजाएं", login: "गूगल से लॉगिन करें", saveChanges: "परिवर्तन सहेजें", privacy: "गोپनीयता नीति", contact: "संपर्क करें", back: "पीछे", visitorDetails: "आगंतुक विवरण", reason: "कारण", chatHistory: "चैट इतिहास", incomingBell: "घंटी बज रही है", endSession: "समाप्त और सहेजें", liveVisitor: "लाइव चैट", awaiting: "उत्तर की प्रतीक्षा" }
         };
 
         auth.onAuthStateChanged(u => {
@@ -247,7 +248,6 @@
                 if(d.lang) changeLang(d.lang);
             });
 
-            // Listen for ALL door alerts belonging to user
             db.ref('user_doors/' + user.uid).on('value', s => {
                 allDoors = Object.entries(s.val() || {}).map(([id, d]) => ({id, ...d}));
                 renderDoorList();
@@ -276,19 +276,36 @@
             db.ref('alerts/' + id).on('value', s => {
                 const d = s.val();
                 if(d && (Date.now() - d.time < 60000)) {
-                    activeDoorId = id; // Switch context to ringing door
+                    activeDoorId = id; 
                     activeVisitorData = d;
                     document.getElementById('v-call-name').innerText = d.name;
                     document.getElementById('v-call-reason').innerText = d.reason;
                     document.getElementById('v-call-img').src = d.selfie;
                     document.getElementById('call-overlay').classList.remove('hidden');
-                    if(isAudio) document.getElementById('ring-audio').play();
+                    
+                    if(isAudio) {
+                        const ringAudio = document.getElementById('ring-audio');
+                        ringAudio.play().catch(e => console.log("Audio play failed: ", e));
+                    }
+
                     document.getElementById('active-chats-container').classList.remove('hidden');
                     document.getElementById('active-v-name').innerText = d.name;
                     document.getElementById('active-v-img').src = d.selfie;
                     listenForChat();
                 }
             });
+        }
+
+        // FIXED: Added missing openAdminChat function
+        function openAdminChat() {
+            if(!activeVisitorData) return;
+            document.getElementById('call-view').classList.add('hidden');
+            document.getElementById('admin-chat-view').classList.remove('hidden');
+            document.getElementById('chat-v-name').innerText = activeVisitorData.name;
+            document.getElementById('chat-v-img').src = activeVisitorData.selfie;
+            // Stop ring when chatting
+            document.getElementById('ring-audio').pause();
+            document.getElementById('ring-audio').currentTime = 0;
         }
 
         function filterHistory(status) {
@@ -302,9 +319,7 @@
                 if(currentFilter === 'all') return true;
                 return v.status === currentFilter;
             });
-
             document.getElementById('history-label').innerText = currentFilter.toUpperCase() + " VISITORS";
-
             list.innerHTML = filtered.reverse().map(([key, v]) => `
                 <div onclick="openHistoryModal('${key}')" class="glass p-3 rounded-2xl flex gap-3 items-center active:scale-95 transition">
                     <img src="${v.selfie}" class="w-10 h-10 rounded-full object-cover">
@@ -344,6 +359,7 @@
                 finalizeAlert('answered', transcript);
                 db.ref('chats/' + activeDoorId).remove();
                 document.getElementById('active-chats-container').classList.add('hidden');
+                document.getElementById('ring-audio').pause();
                 closeOverlayOnly();
             });
         }
@@ -352,6 +368,7 @@
             const msg = 'Main abhi bahar hoon, baad mein rabta karein.';
             db.ref('chats/' + activeDoorId).push({ sender: 'admin', text: msg, time: Date.now() });
             finalizeAlert('missed', [{sender:'admin', text: msg}]);
+            document.getElementById('ring-audio').pause();
             closeOverlayOnly();
         }
 
